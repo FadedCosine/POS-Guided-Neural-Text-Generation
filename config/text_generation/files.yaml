@@ -1,0 +1,5 @@
+train_path: '../../data/bugs/feature_pkl/gathered_indexed_new/finetune/train/lyrics.pkl'
+test_path: '../../data/bugs/feature_pkl/gathered_indexed_new/finetune/test/lyrics.pkl'
+vocab_path: '../../data/bugs/feature_pkl/bpe_models/encoder.json'
+probs_path: '../../data/bugs/feature_pkl/gathered_probs.json'
+model_save_path: 'data/saved_model'

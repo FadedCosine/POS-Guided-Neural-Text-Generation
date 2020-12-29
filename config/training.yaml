@@ -1,0 +1,21 @@
+n_epoch: 8
+relative_pos: False
+gathered: True
+device: 'cuda'
+batch_size: 32
+gpu0_size: 8
+update_step: 1
+mixed_precision: True
+decay_step: 20000
+warmup_step: 0
+clip_norm: 0.25
+learning_rate: 0.0001
+weight_decay: 0.001
+classes:
+  - 공포
+  - 놀람
+  - 분노
+  - 슬픔
+  - 중립
+  - 행복
+  - 혐오

@@ -1,0 +1,14 @@
+n_epoch: 10
+relative_pos: False
+experimental_loss: True
+gathered: True
+device: 'cuda'
+batch_size: 16
+update_step: 1
+mixed_precision: True
+decay_step: 20000
+warmup_step: 100
+clip_norm: 0.25
+learning_rate: 0.0002
+weight_decay: 0.001
+

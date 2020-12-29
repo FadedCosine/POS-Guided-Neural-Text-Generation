@@ -335,13 +335,12 @@ class Transformer_Decoder(Transformer_Base):
         out = self.dropout(out)
         return out, new_mem
 
-    def sampling(self, inp):
+    def sampling(self, dec_input, dec_input_len, memory, sampling_mode, top_w):
         """
             sampling when the model is trained with experimental loss
         """
-        x, inp_lens, mem, sampling_mode, top_w = inp
-        bs, qs = x.size()
-        out, mem = self.compute_hidden(x, mem, inp_lens)
+        bs, qs = dec_input.size()
+        out, mem = self.compute_hidden(dec_input, memory, dec_input_len)
         # out： [batch , (seq_len - 1), hidden_dim]
         out = out[:, :-1]
         # out： [batch * (seq_len - 1), hidden_dim]
@@ -358,24 +357,19 @@ class Transformer_Decoder(Transformer_Base):
             out = self.final.soft_cluster_logit(out)
         return out, mem
 
-    def forward(self, inp):
-        x, x_inp_lens, y, y_input_len, y_pos, mem = inp
-        # if self.experimental_loss == 3:
-        #     x, inp_lens, y, y_pos, mem = inp
-        # else:
-        #     x, inp_lens, y, mem = inp
-        bs, qs = x.size()
-        out, mem = self.compute_hidden(x,mem,inp_lens)
+    def forward(self, dec_input, dec_input_len, dec_output, dec_output_len, dec_output_POS=None, memory=None):
+        bs, qs = dec_input.size()
+        out, mem = self.compute_hidden(dec_input, memory, dec_input_len)
         #取out[:,:-1]是因为batch_generator输入的x是完全的完全的句子，而y是x[:, 1:]
         out = out[:,:-1]
         out = out.contiguous().view(bs*(qs-1),-1)
         if self.experimental_loss in [1, 2]:
-            y = y.contiguous().view(-1)
-            final = self.final(out,y)
+            dec_output = dec_output.contiguous().view(-1)
+            final = self.final(out,dec_output)
         elif self.experimental_loss == 3:
-            y = y.contiguous().view(-1)
-            y_pos = y_pos.contiguous().view(-1)
-            final = self.final(out, y, y_pos)
+            dec_output = dec_output.contiguous().view(-1)
+            dec_output_POS = dec_output_POS.contiguous().view(-1)
+            final = self.final(out, dec_output, dec_output_POS)
         else:
             final = self.final(out)
         return final, mem

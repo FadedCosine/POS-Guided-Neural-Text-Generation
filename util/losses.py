@@ -99,9 +99,7 @@ class SequencePenaltyCriterion(_Loss):
         self.mask_p = mask_p
         self.sequence_tune_rate=sequence_tune_rate
 
-    def forward(self, model, inp, reduce=True, generator=None):
-        inp_tensors,_=inp
-        inp_ids,lens,label,b =inp_tensors
+    def forward(self, model, inp_ids, lens, label, reduce=True, generator=None):
 
         seq_len = inp_ids.size(1)
         # make total number of tokens equal to the sequence length (for memory purposes)

@@ -108,11 +108,11 @@ def build_vocab_with_core(args, write_path):
         dirty_file.close()
 
     pos_vocab = pos_counter.most_common()
-    with open(os.path.join(write_path,"core_pos{}.vocab".format("_lower" if args.lower else "")), "w+") as f:
+    with open(os.path.join(write_path,"core_pos.vocab"), "w+") as f:
         for pos in pos_vocab:
             f.write("{}\n".format(pos[0]))
     token_vocab = token_counter.most_common()     
-    with open(os.path.join(write_path,"core_token{}.vocab".format("_lower" if args.lower else "")), "w+") as f:
+    with open(os.path.join(write_path,"core_token.vocab"), "w+") as f:
         for token_item in token_vocab:
             token = token_item[0]
             if token != "<unk>": #词汇表中不包括 <unk>
@@ -306,8 +306,8 @@ if __name__ == '__main__':
     args = get_parser()
     data_path = "./data/{}/".format(args.dataset)
     VOCAB_PATH = {
-        "flair" : (data_path + "flair_token_lower.vocab", data_path + "flair_pos.vocab"),
-        "core" : (data_path + "core_token_lower.vocab", data_path + "core_pos.vocab")
+        "flair" : (data_path + "flair_token.vocab", data_path + "flair_pos.vocab"),
+        "core" : (data_path + "core_token.vocab", data_path + "core_pos.vocab")
     }
     BUILD_VOCAB_FUNCTION = {
         "flair" : build_vocab_with_flair,

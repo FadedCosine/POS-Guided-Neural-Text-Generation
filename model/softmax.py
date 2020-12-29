@@ -183,7 +183,8 @@ class Factorized_SoftmaxV2(nn.Module):
         self.cluster_logit = nn.Linear(hidden_dim, self.n_clusters, bias=False)
         self.logits = nn.Parameter(torch.Tensor(hidden_dim, vocab_size))
 
-    def hard_cluster_logit(self,x, top_w, ishard=True):
+    def hard_cluster_logit(self, x, top_w, ishard=True):
+        print("x is ", x)
         def check_shorts(logits, top_w):
             if isinstance(top_w,int): #if case is top_k
                 # print(((logits != 0).sum(dim=1) < top_w).sum())
@@ -212,8 +213,8 @@ class Factorized_SoftmaxV2(nn.Module):
                 l,r = self.cutoffs[i], self.cutoffs[i+1]
                 indices = ((target_cluster[:,idx] == i) & cs).nonzero().squeeze(1)
          
-                # if indices.size()[0] == 0:
-                #     continue
+                if indices.size()[0] == 0:
+                    continue
                 tail = torch.softmax(torch.matmul(x[indices], self.logits[:,l:r]),1)
                 logits[indices,l:r] = cl_probs[indices,i].unsqueeze(1) * tail
             idx+=1

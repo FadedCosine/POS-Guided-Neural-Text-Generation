@@ -262,30 +262,16 @@ class Transformer(nn.Module):
             self.final = POS_Guided_Softmax(vocab_size, hidden_dim, pos2word, token_in_pos_id, padding_index)
         else:
             self.final = nn.Linear(hidden_dim, vocab_size, bias=False)
-    def get_enc_dec_padding_mask(self, x, context, inp_masks):
-        """
-        因为Transformer_Base当中定义的get_mask不适用于计算seq2seq任务当中，enc_dec_attn层的padding_mask
-        故重新实现
-        """
-        bs, qs = x.size()
-        # qs: 3
-        ms = context.size(1)
-        ks = qs + ms
-        ones = torch.ones((qs, ks)).byte().to(x.device)
-        dec_mask = torch.zeros_like(ones)
-        inp_masks = torch.cat([torch.zeros(bs,ms,dtype=inp_masks.dtype,device=x.device),inp_masks],1)
-        mask = (inp_masks.unsqueeze(1) + dec_mask.unsqueeze(0)) > 0
-        return mask
-    def compute_enc_context(self, x, inp_lens):
+    def compute_enc_context(self, enc_input, enc_input_lens):
         """
         :param x: input, input.size() = [batch_size, seq_len]
         :return:
         """
-        inp_masks = mask_lengths(inp_lens, max_len=self.seq_len, reverse=True).byte()
-        emb, pos_ebd = self.encoder.get_emb(x)
+        inp_masks = mask_lengths(enc_input_lens, max_len=self.seq_len, reverse=True).byte()
+        emb, pos_ebd = self.encoder.get_emb(enc_input)
         # 其实通过padding_id也可以得到paddding_mask
-        # enc_padding_mask = mask_padding(x, self.padding_index)
-        enc_padding_mask = self.encoder.get_mask(x, None, inp_masks, False)
+        # enc_padding_mask = mask_padding(enc_input, self.padding_index)
+        enc_padding_mask = self.encoder.get_mask(enc_input, None, inp_masks, False)
         enc_out = emb
         enc_mem = []
         for i in range(self.encoder.n_layers):
@@ -298,22 +284,35 @@ class Transformer(nn.Module):
         enc_out = self.encoder.dropout(enc_out)
         return enc_out, enc_mem
         
-    def decode_step(self, inp):
-        """
-           在decoding阶段，外部已经通过compute_enc_context计算出encoder的context，每次输入当前时刻已经生成的所有y，预测下一个时刻的y_next，
+    def decode_step(self, enc_input_len, dec_input, dec_input_len, context, sampling_mode, top_w):
+        """ 在decoding阶段，外部已经通过compute_enc_context计算出encoder的context，每次输入当前时刻已经生成的所有y，预测下一个时刻的y_next，
            注意batch当中有可能有已经生成完的
-        """
-        x_lens, y, y_input_len, context, sampling_mode, top_w = inp
-     
-        bs, qs = y.size()
-        dec_masks = mask_lengths(y_input_len, reverse=True).byte()
-       
-        dec_emb, dec_pos_ebd = self.decoder.get_emb(y, None)
-        dec_context_mask = self.decoder.get_mask(y, None, dec_masks, True)
-        bs, dec_seq_len = dec_masks.size()
 
-        # enc_dec_padding_mask = self.get_enc_dec_padding_mask(y, context, dec_masks)
-        enc_padding_masks = mask_lengths(x_lens, max_len=self.seq_len, reverse=True).byte()
+        Args:
+            enc_input_len ([torch.LongTensor]): encoder input length, to calculate the enc_dec_padding_mask, in decoding step 
+            dec_input ([torch.LongTensor]): decoder input
+            dec_input_len ([torch.LongTensor]): decoder input length
+            context : the encoder input's representations from encoder
+            sampling_mode ([int]): sampling mode
+                0: Linear layer to output logits
+                1: Hard Cluster Logits, using topk to sample Cluster. Final logits can keep multi cluster's tokens
+                2: Hard Cluster Logits, using topp sampling to sample Cluster. Final logits can keep multi cluster's tokens
+                3: Only for POS sampling, using topp sampling to sample POS. Final logits can only keep one POS's tokens
+            top_w ([int or float]): 
+                top k 's k value, if type is int,
+                top p 's p value, if type is float,
+                sampling_mode in [1, 2, 3], will ensure the output Logits keep enough tokens' logits for top k or top p sampling.
+
+        Returns:
+            out: Finial token logits, before softmax.
+        """
+        bs, qs = dec_input.size()
+        dec_masks = mask_lengths(dec_input_len, reverse=True).byte()
+       
+        dec_emb, dec_pos_ebd = self.decoder.get_emb(dec_input, None)
+        dec_context_mask = self.decoder.get_mask(dec_input, None, dec_masks, True)
+        bs, dec_seq_len = dec_masks.size()
+        enc_padding_masks = mask_lengths(enc_input_len, max_len=self.seq_len, reverse=True).byte()
         enc_dec_padding_mask = enc_padding_masks.unsqueeze(1).expand(bs, dec_seq_len, context.size(1)).bool()
         
         out = dec_emb
@@ -328,7 +327,6 @@ class Transformer(nn.Module):
      
         if sampling_mode == 0:
             out = self.final(out)
-            #! final训傻了，进入final之前的out看起来正常，进入final之后out的eos概率飙升，有可能是loss的问题
         elif sampling_mode == 1:
             ishard = True 
             out = self.final.hard_cluster_logit(out, top_w, ishard)
@@ -336,44 +334,31 @@ class Transformer(nn.Module):
             ishard = False 
             out = self.final.hard_cluster_logit(out, top_w, ishard)
         elif sampling_mode == 3:
-        
             out = self.final.pos_sampling(out, top_w)
         else:
             out = self.final.soft_cluster_logit(out)
         return out
 
-    def forward(self, inp):
-        x, x_lens, y, y_len, y_pos, _ = inp
-
-        # batch_size, seq_len = x.size()
-        # next_y = torch.ones(batch_size, 1).fill_(100002).type_as(x).to(x.device)
-        # y = torch.cat([next_y, torch.zeros(batch_size, seq_len-1).fill_(100001).type_as(x).to(x.device)], 1)
-        # bs, l = next_y.size()
-        # y_len = torch.LongTensor([l] * bs).to(x.device)
-
-        context, enc_mem = self.compute_enc_context(x, x_lens)
+    def forward(self, enc_input, enc_input_len, target, target_len, target_POS=None, memory=None):
+        context, enc_mem = self.compute_enc_context(enc_input, enc_input_len)
         # 因为是seq2seq的任务，而已经不是纯文本生成的问题了，x就是x，y就是y，所以不用out[:,:-1]
-        y_input = y[..., :-1]
-        
-        y_output = y[..., 1:]
+        y_input = target[..., :-1]
+        y_output = target[..., 1:]
         bs, qs = y_output.size()
-        y_pos_tgt = y_pos[..., 1:]
-        y_input_len = y_len - 1
+        
+        y_input_len = target_len - 1
         dec_masks = mask_lengths(y_input_len, max_len=self.seq_len-1, reverse=True).byte()
         dec_emb, dec_pos_ebd = self.decoder.get_emb(y_input, None)
         
         dec_context_mask = self.decoder.get_mask(y_input, None, dec_masks, True)
         bs, dec_seq_len = dec_masks.size()
-        # dec_masks.size() : [ bs,  dec_seq_len ]
-        # enc_dec_padding_mask = dec_masks.unsqueeze(-1).expand(bs, dec_seq_len, context.size(1))
-        # enc_dec_padding_mask = self.get_enc_dec_padding_mask(y_input, context, dec_masks)
         """ 
         必须要搞清楚enc_dec_padding_mask的作用， Q * K之后矩阵大小为 [ batch_size, q_seq_len, k_seq_len]
         其中[1]维度上的q_seq_len，一定是Decoder输入的文本的长度，因为我们对Decoder输入的文本的每一个位置都要做预测，
         所以mask不可能是mask在这个维度上，相反，是对k_seq_len维度上，因为k_seq_len在Encoder中是来自于Encoder输入本身，
         在Decoder中是来自于Encoder提取出的context，enc_dec_padding_mask的作用在这个维度上要mask掉padding的出的score
         """
-        enc_padding_masks = mask_lengths(x_lens, max_len=self.seq_len, reverse=True).byte()
+        enc_padding_masks = mask_lengths(enc_input_len, max_len=self.seq_len, reverse=True).byte()
         enc_dec_padding_mask = enc_padding_masks.unsqueeze(1).expand(bs, dec_seq_len, context.size(1)).bool()
 
         out = dec_emb
@@ -393,12 +378,15 @@ class Transformer(nn.Module):
             final = self.final(out,y_output)
         elif self.experimental_loss == 3:
             y_output = y_output.contiguous().view(-1)
-            y_pos_tgt = y_pos_tgt.contiguous().view(-1)
+            y_pos_tgt = target_POS[..., 1:].contiguous().view(-1)
             final = self.final(out, y_output, y_pos_tgt)
         else:
             final = self.final(out)
      
         return final, enc_mem
-     
+    def beam_search(self, input_encoder, input_decoder, input_order, beam_size=None,
+				 max_sequence_length=None, length_normalization_factor=0.0, top_p=0, top_k = 0,
+				 get_attention=False, device_ids=None):
+     return
 
     

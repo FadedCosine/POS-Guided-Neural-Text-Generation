@@ -9,7 +9,6 @@ def get_parser():
     parser.add_argument("--tag_tool", type=str, default="core",
                         help='parent directory path')
     parser.add_argument("--vocab_size", type=int, default=100000)
-    parser.add_argument("--lower", action="store_true")
     parser.add_argument("--dataset", type=str, default="paraNMT")
     parser.add_argument(
             "--topw_dir",
@@ -25,8 +24,8 @@ if __name__ == '__main__':
     args = get_parser()
     data_path = "./data/{}/".format(args.dataset)
     VOCAB_PATH = {
-        "flair" : (data_path + "flair_token{}.vocab".format("_lower" if args.lower else ""), data_path + "flair_pos.vocab"),
-        "core" : (data_path + "core_token{}.vocab".format("_lower" if args.lower else ""), data_path + "core_pos.vocab")
+        "flair" : (data_path + "flair_token.vocab", data_path + "flair_pos.vocab"),
+        "core" : (data_path + "core_token.vocab", data_path + "core_pos.vocab")
     }
     token_vocab_path, pos_vocab_path = VOCAB_PATH[args.tag_tool]
     sampled_file_path = "./data/sampled/{}/prefix-50_nsample-100/{}".format(args.dataset, args.topw_dir)

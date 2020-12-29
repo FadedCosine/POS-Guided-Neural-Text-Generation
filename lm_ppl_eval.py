@@ -51,7 +51,7 @@ if __name__ == '__main__':
     print(args.sampled_savepath)
     model = get_model(args)
     test_batchfier = get_batchfier(args)
-    evaluater = Evaluater(model, test_batchfier, args.token_tokenizer.padding_id, args.experimental_loss, args.experimental_loss==3)
+    evaluater = Evaluater(model, test_batchfier, args.token_tokenizer.padding_id, args.experimental_loss, args.dataset, args.experimental_loss==3)
 
     evaluater.eval()
 

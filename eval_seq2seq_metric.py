@@ -49,6 +49,11 @@ def main():
                 source.append(o['prefix'].split()[1:-1])
                 predict.append(o['decoded_predict'].split())
                 gt.append(o['decoded_true'].split()[1:-1])
+                # for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
+                #     source.append(sour)
+                #     predict.append(pred)
+                #     gt.append(gt_)
+                
 
         sb[filename] = bleu_upto(source, predict, 5)
         bleu[filename] = bleu_upto(gt, predict, 5)

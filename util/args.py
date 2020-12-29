@@ -60,7 +60,6 @@ class EMNLPArgument:
         parser.add_argument("--report_step", type=int, default=50, help="Report loss every report_step")
         parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
         parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
-        parser.add_argument("--lower", action="store_true", help="If lower the text")
         # if is_test:
         parser.add_argument("--saved-path", type=str)
         parser.add_argument("--nprefix", type=int, default=50)
@@ -124,8 +123,8 @@ class EMNLPArgument:
 
         data['pos2word_path'] = os.path.join(dirname, '{tagger}_{vocab_size}_pos2word.pkl'.format(tagger=data['tagger'], vocab_size=data['vocab_size']))
         data['token_in_pos_id_path'] = os.path.join(dirname, '{tagger}_{vocab_size}_token_in_pos_id.pkl'.format(tagger=data['tagger'], vocab_size=data['vocab_size']))
-        token_vocab_path = os.path.join(dirname, '{tagger}_token{lower}.vocab'.format(tagger=data['tagger'], lower="_lower" if data['lower'] else ""))
-        pos_vocab_path = os.path.join(dirname, '{tagger}_pos{lower}.vocab'.format(tagger=data['tagger'], lower="_lower" if data['lower'] else ""))
+        token_vocab_path = os.path.join(dirname, '{tagger}_token.vocab'.format(tagger=data['tagger']))
+        pos_vocab_path = os.path.join(dirname, '{tagger}_pos.vocab'.format(tagger=data['tagger']))
         data['token_tokenizer'] = tokenizer.TokenTokenizer(token_vocab_path, data['vocab_size'], add_special_token=data['add_special_token'])
         data['pos_tokenizer'] = tokenizer.POSTokenizer(pos_vocab_path, add_special_token=data['add_special_token'])
         

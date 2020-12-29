@@ -108,7 +108,6 @@ def divided_input(indexed):
     cind = torch.cat([content, torch.LongTensor([0] * bs)[:, None].to(device)], 1)
     return bs, cl, (title, cind, title_len, cls)
 
-
 def get_mem(model,inp):
     istuple = True if isinstance(inp, tuple) else False
     with torch.no_grad():
@@ -169,10 +168,6 @@ def LM_sample(model, lengths, inp, top_w, temparature, experimental_loss, sampli
                 inp = (title, cind,tls,cls)
             else:
                 inp = sampled
-            # if sampled == torch.LongTensor([[0]]).to('cuda'):
-            #     cnt +=1
-            #     if cnt ==2:
-            #         break
     if istuple:
         return res.tolist(), probs.tolist()
     else:
@@ -197,12 +192,11 @@ def seq2seq_sample(model, max_decoding_len, tokenizer, inp, top_w, temparature, 
             bs, l = next_y.size()
             lens = torch.LongTensor([l] * bs).to(x.device)
             if experimental_loss == 1 or experimental_loss == 2 :
-                logits = model.decode_step((x_lens, next_y, lens, context, sampling_mode, top_w))
+                logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, top_w)
             elif experimental_loss == 3:
-                logits = model.decode_step((x_lens, next_y, lens, context, sampling_mode, pos_top_w))
+                logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, pos_top_w)
             else:
-                # logits = model((x, x_lens, next_y_, lens, y_pos, None))
-                logits = model.decode_step((x_lens, next_y, lens, context, 0, None)) # 除了f2和pos，其他的模型的最后一次皆为一层linear，必有sampling_mode为0
+                logits = model.decode_step(x_lens, next_y, lens, context, 0, None) # 除了f2和pos，其他的模型的最后一次皆为一层linear，必有sampling_mode为0
             # sampling输出的logits还不是最终的概率，而是一个logits，需要经过softmax
             
             logits = top_whatever(logits, top_w)

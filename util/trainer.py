@@ -48,9 +48,6 @@ class Trainer:
         self.clip_norm = clip_norm
         self.dataset = dataset
 
-    def reformat_inp(self, inp):
-        raise NotImplementedError
-
     def get_acc(self, logits, y):
         _, predicted = torch.max(logits.data, 1)
         total = y.size(0)
@@ -91,17 +88,19 @@ class Trainer:
         test_d1_score=0
         
         for idx, inp in enumerate(batchfier):
-            if 0 in inp[1]:
+            x, x_l, x_pos, y, y_l, y_pos = inp
+            if 0 in x_l:
                 continue
-            inp = self.reformat_inp(inp)
-            
-            logits, _ = model(inp[0])
-            # reformat_inp 之后inp[-1]的维度是[batch_size, seq_len-1]
-        
-            loss = criteria(logits, inp[-1].contiguous().view(-1))
+            logits, _ = model(x, x_l, y, y_l, y_pos)
+            # print(logits)
+            if self.dataset == "wiki103":
+                tgt = y
+            elif self.dataset == "paraNMT":
+                tgt = y[..., 1:]
+            loss = criteria(logits, tgt.contiguous().view(-1))
             step_loss += loss.item()
             tot_loss += loss.item()
-            # correct, total = self.get_acc(logits, inp[-1].contiguous().view(-1))
+            # correct, total = self.get_acc(logits, tgt.contiguous().view(-1))
             # acc += correct / total
             if self.mixed_precision:
                 with apex.amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -156,16 +155,20 @@ class Trainer:
 
         for inp in batchfier:
             with torch.no_grad():
-                if 0 in inp[1]:
+                x, x_l, x_pos, y, y_l, y_pos = inp
+                if 0 in x_l:
                     continue
-                inp = self.reformat_inp(inp)
-                logits, _ = model(inp[0])
-
-                loss = criteria(logits, inp[-1].contiguous().view(-1))
-                n_samples+= inp[-1].numel()
+                logits, _ = model(x, x_l, y, y_l, y_pos)
+                # print(logits)
+                if self.dataset == "wiki103":
+                    tgt = y
+                elif self.dataset == "paraNMT":
+                    tgt = y[..., 1:]
+                loss = criteria(logits, tgt.contiguous().view(-1))
+                n_samples+= tgt.numel()
                 step_loss += loss.item()
-                # correct, total = self.get_acc(logits, inp[-1])
-                # correct3, total3 = self.top_k_acc(logits, inp[-1], 3)
+                # correct, total = self.get_acc(logits, tgt)
+                # correct3, total3 = self.top_k_acc(logits, tgt, 3)
                 # t_correct += correct
                 # t_total += total
                 # t_correct3 += correct3
@@ -188,13 +191,6 @@ class EMNLPTrainer(Trainer):
                  update_step, criteria, clip_norm, mixed_precision, dataset):
         super(EMNLPTrainer,self).__init__(model, train_batchfier, test_batchfier, optimizers, schedulers,
                  update_step, criteria, clip_norm, mixed_precision, dataset)
-
-    def reformat_inp(self, inp):
-        x, x_l, x_pos, y, y_l, y_pos = inp
-        if self.dataset == "wiki103":
-            return (x, x_l, y, y_l, y_pos, None), y
-        elif self.dataset == "paraNMT":
-            return (x, x_l, y, y_l, y_pos, None), y[..., 1:]
     
 
     def test_d1_epoch(self,args):
@@ -240,17 +236,20 @@ class EMNLPTrainer(Trainer):
         test_d1_score=0
 
         for inp in batchfier:
-            if 0 in inp[1]:
+            x, x_l, x_pos, y, y_l, y_pos = inp
+            if 0 in x_l:
                 continue
-            inp = self.reformat_inp(inp)
-            logits, _ = model(inp[0])
+            logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
-            loss = criteria(logits, inp[-1].contiguous().view(-1))
-
+            if self.dataset == "wiki103":
+                tgt = y
+            elif self.dataset == "paraNMT":
+                tgt = y[..., 1:]
+            loss = criteria(logits, tgt.contiguous().view(-1))
             # print(logits)
             step_loss += loss.item()
             tot_loss += loss.item()
-            # correct, total = self.get_acc(logits, inp[-1].contiguous().view(-1))
+            # correct, total = self.get_acc(logits, tgt.contiguous().view(-1))
             # acc += correct / total
             if self.mixed_precision:
                 with apex.amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -308,19 +307,28 @@ class EMNLPTrainer(Trainer):
         model.zero_grad()
 
         for total_iter, inp in enumerate(batchfier):
-            inp = self.reformat_inp(inp)
+            x, x_l, x_pos, y, y_l, y_pos = inp
+            if 0 in x_l:
+                continue
+            logits, _ = model(x, x_l, y, y_l, y_pos)
+            # print(logits)
+            if self.dataset == "wiki103":
+                tgt = y
+            elif self.dataset == "paraNMT":
+                tgt = y[..., 1:]
+
             # print(logits)
             if torch.rand(1).item() < seq_criteria.sequence_tune_rate:
-                if inp[0][0].size(1) < seq_criteria.sequence_prefix_length + seq_criteria.sequence_completion_length:
+                if x.size(1) < seq_criteria.sequence_prefix_length + seq_criteria.sequence_completion_length:
                     continue
-                loss = seq_criteria(model, inp)
+                loss = seq_criteria(model, x, x_l, y)
             else:
-                logits, _ = model(inp[0])
-                loss = criteria(logits, inp[-1].contiguous().view(-1))
+                logits, _ = model(x, x_l, y, y_l, y_pos)
+                loss = criteria(logits, tgt.contiguous().view(-1))
 
             step_loss += loss.item()
             tot_loss += loss.item()
-            # correct, total = self.get_acc(logits, inp[-1].contiguous().view(-1))
+            # correct, total = self.get_acc(logits, tgt.contiguous().view(-1))
             # acc += correct / total
             if self.mixed_precision:
                 with apex.amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -356,13 +364,14 @@ class EMNLPTrainer(Trainer):
 
 
 class Evaluater:
-    def __init__(self, model, batchfier, padding_idx, experimental=False):
+    def __init__(self, model, batchfier, padding_idx, dateset, experimental=False):
         self.model = model
         self.batchfier = batchfier
         self.padding_idx = padding_idx
         self.macro_criterion=nn.CrossEntropyLoss(ignore_index=self.padding_idx,reduction="none")
         self.criterion=nn.CrossEntropyLoss(ignore_index=self.padding_idx,reduction="none")
         self.experimental = experimental
+        self.dataset = dateset
    
 
     def init_macro_ppl(self, device):
@@ -423,13 +432,6 @@ class Evaluater:
         macc = (self.accs / (self.acnts + 1e-6)).sum() / ny
         return macc.item()
 
-    def reformat_inp(self, inp):
-        x, x_l, x_pos, y, y_l, y_pos = inp
-        if self.dataset == "wiki103":
-            return (x, x_l, y, y_l, y_pos, None), y
-        elif self.dataset == "paraNMT":
-            return (x, x_l, y, y_l, y_pos, None), y[..., 1:]
-
     def eval(self):
         model = self.model
         model.eval()
@@ -446,17 +448,23 @@ class Evaluater:
         t_correct = 0
         for inp in pbar:
             with torch.no_grad():
-                
-                if 0 in inp[1]:
+                x, x_l, x_pos, y, y_l, y_pos = inp
+                if 0 in x_l:
                     continue
-                inp = self.reformat_inp(inp)
+                logits, _ = model(x, x_l, y, y_l, y_pos)
+                # print(logits)
+                if self.dataset == "wiki103":
+                    tgt = y
+                elif self.dataset == "paraNMT":
+                    tgt = y[..., 1:]
+            
                 if self.experimental:
-                    logits, _ = model.sampling(inp[0][:2] + (None, 0, 1))
+                    logits, _ = model.sampling(x, x_l, None, 0, 1)
                 else:
-                    logits, _ = model(inp[0])
-                y = inp[-1].contiguous().view(-1)
+                    logits, _ = model(x, x_l, y, y_l, y_pos)
+                y = tgt.contiguous().view(-1)
                 losses = self.criterion(logits, y)
-                n_samples+= (inp[-1] != self.padding_idx).sum().item()
+                n_samples+= (tgt != self.padding_idx).sum().item()
                 t_correct += self.acc(logits, y)
                 step_loss += losses.sum().item()
                 mac_ppl = self.macro_ppl(logits, y)

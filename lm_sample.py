@@ -8,6 +8,7 @@ from util.args import EMNLPArgument
 import apex
 from pytorch_transformers import WarmupLinearSchedule
 from util.sampling import *
+from util.beam_search import *
 import pandas as pd
 import pickle
 import logging
@@ -63,7 +64,6 @@ def generate_LM_sample(args, model, batchfier):
     tot_len = len(batchfier)
     for inp in batchfier:
         prefix = inp[0][:,:args.nprefix]
-        logger.info("prefix is {}".format(prefix))
         gt = inp[0][:,args.nprefix:]
         
         if gt.size(-1) == 0:
@@ -77,7 +77,9 @@ def generate_LM_sample(args, model, batchfier):
             pos_top_w = args.pos_top_p
         else:
             pos_top_w = args.pos_top_k
-        res, _ = LM_sample(model, args.ngenerate, prefix, top_w, args.temperature,
+        # if args.beam_size > 0:
+        # else:
+        res, _ = LM_sampling(model, args.ngenerate, prefix, top_w, args.temperature,
                             args.experimental_loss, args.sampling_mode, pos_top_w)
         generated.extend(truncate(res,args.nprefix))
         truths.extend(gt.tolist())
@@ -94,6 +96,7 @@ def generate_seq2seq_sample(args, model, batchfier):
     generated = []
     idx = 0
     tot_len = batchfier.len()
+    cache_file = open(args.sampled_savepath + ".json", "w")
     if isinstance(batchfier, IterableDataset):
         batchfier = DataLoader(dataset=batchfier,
                                 batch_size=batchfier.size,
@@ -101,7 +104,7 @@ def generate_seq2seq_sample(args, model, batchfier):
                                 collate_fn=batchfier.collate, )
     for inp in batchfier:
         input_x = inp[0]
-        logger.info("input_x is {}".format(input_x[..., :10]))
+        # logger.info("input_x is {}".format(input_x[..., :10]))
         gt = inp[3]
         if args.top_k == 0:
             top_w = args.top_p
@@ -111,13 +114,25 @@ def generate_seq2seq_sample(args, model, batchfier):
             pos_top_w = args.pos_top_p
         else:
             pos_top_w = args.pos_top_k
-        res = seq2seq_sample(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature,
+        if args.beam_size > 0:
+            beam_Sequence = seq2seq_beam_search(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature, args.experimental_loss, args.beam_size, args.sampling_mode, pos_top_w)
+            res = []
+            for beam in beam_Sequence:
+                res.append([sentence.output for sentence in beam])
+
+        else:
+            res = seq2seq_sampling(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature,
                             args.experimental_loss, args.sampling_mode, pos_top_w)
         
         generated.extend(res)
         truths.extend(gt.tolist())
         prefixs.extend(input_x.tolist())
         idx += 1
+        o = {}
+        o['prefix'] = [args.token_tokenizer.convert_ids_to_words(item) for item in input_x.tolist()]
+        o['decoded_predict'] = [args.token_tokenizer.convert_ids_to_words(item) for item in res]
+        o['decoded_true'] = [args.token_tokenizer.convert_ids_to_words(item) for item in gt.tolist()]
+        print(json.dumps(o), file=cache_file, flush=True)
         if idx % 1 == 0:
             logger.info("res is {}".format(res))
             logger.info("Finish generating {}/{} batch.".format(idx, tot_len))
@@ -132,13 +147,14 @@ if __name__ == '__main__':
     logger.info(args.__dict__)
     model = get_model(args)
     test_batchfier = get_batchfier(args)
+    logger.info("save sampling sentence in {}".format(args.sampled_savepath))
+    if not os.path.exists(os.path.dirname(args.sampled_savepath)):
+        os.makedirs(os.path.dirname(args.sampled_savepath))
     logger.info("Start to generate sentence")
     if args.dataset == "wiki103":
         df = generate_LM_sample(args,model,test_batchfier)
     elif args.dataset == "paraNMT":
         df = generate_seq2seq_sample(args, model,test_batchfier)
 
-    logger.info("save sampling sentence in {}".format(args.sampled_savepath))
-    if not os.path.exists(os.path.dirname(args.sampled_savepath)):
-        os.makedirs(os.path.dirname(args.sampled_savepath))
+    
     df.to_pickle(args.sampled_savepath)

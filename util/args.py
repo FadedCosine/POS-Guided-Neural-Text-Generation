@@ -64,6 +64,7 @@ class EMNLPArgument:
         parser.add_argument("--saved-path", type=str)
         parser.add_argument("--nprefix", type=int, default=50)
         parser.add_argument("--ngenerate", type=int, default=100)
+        parser.add_argument("--beam-size", type=int, default=0)
         parser.add_argument("--sampling-mode", type=int, default=0)
         parser.add_argument("--top-k", type=int, default=0)
         parser.add_argument("--top-p", type=float, default=0.0)

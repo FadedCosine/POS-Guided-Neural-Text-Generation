@@ -283,7 +283,53 @@ class Transformer(nn.Module):
             enc_out = self.encoder.main_nets[i](*main_inp)
         enc_out = self.encoder.dropout(enc_out)
         return enc_out, enc_mem
+
+    def forward(self, enc_input, enc_input_len, target, target_len, target_POS=None, memory=None):
+        context, enc_mem = self.compute_enc_context(enc_input, enc_input_len)
+        # 因为是seq2seq的任务，而已经不是纯文本生成的问题了，x就是x，y就是y，所以不用out[:,:-1]
+        y_input = target[..., :-1]
+        y_output = target[..., 1:]
+        bs, qs = y_output.size()
         
+        y_input_len = target_len - 1
+        dec_masks = mask_lengths(y_input_len, max_len=self.seq_len-1, reverse=True).byte()
+        dec_emb, dec_pos_ebd = self.decoder.get_emb(y_input, None)
+        
+        dec_context_mask = self.decoder.get_mask(y_input, None, dec_masks, True)
+        bs, dec_seq_len = dec_masks.size()
+        """ 
+        必须要搞清楚enc_dec_padding_mask的作用， Q * K之后矩阵大小为 [ batch_size, q_seq_len, k_seq_len]
+        其中[1]维度上的q_seq_len，一定是Decoder输入的文本的长度，因为我们对Decoder输入的文本的每一个位置都要做预测，
+        所以mask不可能是mask在这个维度上，相反，是对k_seq_len维度上，因为k_seq_len在Encoder中是来自于Encoder输入本身，
+        在Decoder中是来自于Encoder提取出的context，enc_dec_padding_mask的作用在这个维度上要mask掉padding的出的score
+        """
+        enc_padding_masks = mask_lengths(enc_input_len, max_len=self.seq_len, reverse=True).byte()
+        enc_dec_padding_mask = enc_padding_masks.unsqueeze(1).expand(bs, dec_seq_len, context.size(1)).bool()
+
+        out = dec_emb
+        
+        for i in range(self.decoder.n_layers):
+            # print("Decoder layer : ", i)
+            main_inp = (out, dec_context_mask, enc_dec_padding_mask, context, dec_pos_ebd, self.decoder.rr_bias, self.decoder.rw_bias) if self.rel_att else \
+                (out, dec_context_mask, enc_dec_padding_mask, context)
+            out = self.decoder.main_nets[i](*main_inp)
+        out = self.decoder.dropout(out)
+        # out: [batch, seq_len, hidden_dim]
+        
+        out = out.contiguous().view(bs * qs, -1)
+       
+        if self.experimental_loss in [1, 2]:
+            y_output = y_output.contiguous().view(-1)
+            final = self.final(out,y_output)
+        elif self.experimental_loss == 3:
+            y_output = y_output.contiguous().view(-1)
+            y_pos_tgt = target_POS[..., 1:].contiguous().view(-1)
+            final = self.final(out, y_output, y_pos_tgt)
+        else:
+            final = self.final(out)
+     
+        return final, enc_mem
+       
     def decode_step(self, enc_input_len, dec_input, dec_input_len, context, sampling_mode, top_w):
         """ 在decoding阶段，外部已经通过compute_enc_context计算出encoder的context，每次输入当前时刻已经生成的所有y，预测下一个时刻的y_next，
            注意batch当中有可能有已经生成完的
@@ -339,54 +385,16 @@ class Transformer(nn.Module):
             out = self.final.soft_cluster_logit(out)
         return out
 
-    def forward(self, enc_input, enc_input_len, target, target_len, target_POS=None, memory=None):
-        context, enc_mem = self.compute_enc_context(enc_input, enc_input_len)
-        # 因为是seq2seq的任务，而已经不是纯文本生成的问题了，x就是x，y就是y，所以不用out[:,:-1]
-        y_input = target[..., :-1]
-        y_output = target[..., 1:]
-        bs, qs = y_output.size()
-        
-        y_input_len = target_len - 1
-        dec_masks = mask_lengths(y_input_len, max_len=self.seq_len-1, reverse=True).byte()
-        dec_emb, dec_pos_ebd = self.decoder.get_emb(y_input, None)
-        
-        dec_context_mask = self.decoder.get_mask(y_input, None, dec_masks, True)
-        bs, dec_seq_len = dec_masks.size()
-        """ 
-        必须要搞清楚enc_dec_padding_mask的作用， Q * K之后矩阵大小为 [ batch_size, q_seq_len, k_seq_len]
-        其中[1]维度上的q_seq_len，一定是Decoder输入的文本的长度，因为我们对Decoder输入的文本的每一个位置都要做预测，
-        所以mask不可能是mask在这个维度上，相反，是对k_seq_len维度上，因为k_seq_len在Encoder中是来自于Encoder输入本身，
-        在Decoder中是来自于Encoder提取出的context，enc_dec_padding_mask的作用在这个维度上要mask掉padding的出的score
-        """
-        enc_padding_masks = mask_lengths(enc_input_len, max_len=self.seq_len, reverse=True).byte()
-        enc_dec_padding_mask = enc_padding_masks.unsqueeze(1).expand(bs, dec_seq_len, context.size(1)).bool()
-
-        out = dec_emb
-        
-        for i in range(self.decoder.n_layers):
-            # print("Decoder layer : ", i)
-            main_inp = (out, dec_context_mask, enc_dec_padding_mask, context, dec_pos_ebd, self.decoder.rr_bias, self.decoder.rw_bias) if self.rel_att else \
-                (out, dec_context_mask, enc_dec_padding_mask, context)
-            out = self.decoder.main_nets[i](*main_inp)
-        out = self.decoder.dropout(out)
-        # out: [batch, seq_len, hidden_dim]
-        
-        out = out.contiguous().view(bs * qs, -1)
-       
-        if self.experimental_loss in [1, 2]:
-            y_output = y_output.contiguous().view(-1)
-            final = self.final(out,y_output)
-        elif self.experimental_loss == 3:
-            y_output = y_output.contiguous().view(-1)
-            y_pos_tgt = target_POS[..., 1:].contiguous().view(-1)
-            final = self.final(out, y_output, y_pos_tgt)
-        else:
-            final = self.final(out)
-     
-        return final, enc_mem
-    def beam_search(self, input_encoder, input_decoder, input_order, beam_size=None,
+    def beam_search(self, enc_input, enc_input_len, dec_input, beam_size=None,
 				 max_sequence_length=None, length_normalization_factor=0.0, top_p=0, top_k = 0,
-				 get_attention=False, device_ids=None):
-     return
+				 get_attention=False):
+        context, enc_mem = self.compute_enc_context(enc_input, enc_input_len)
+        generator = SequenceGenerator(
+			decode_step=self.decode_step,
+			beam_size=beam_size,
+			max_sequence_length=max_sequence_length,
+			get_attention=get_attention,
+			length_normalization_factor=length_normalization_factor)
+        return generator.beam_search(dec_input, top_k=top_k, top_p=top_p)
 
     

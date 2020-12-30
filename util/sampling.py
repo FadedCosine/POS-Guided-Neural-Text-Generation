@@ -123,7 +123,7 @@ def get_mem(model,inp):
     return mem, inp
 
 @torch.no_grad()
-def LM_sample(model, lengths, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
+def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
     top_whatever = top_k_logits if isinstance(top_w, int) else top_p_logits
     probs = None
     istuple = True if isinstance(inp, tuple) else False
@@ -174,7 +174,7 @@ def LM_sample(model, lengths, inp, top_w, temparature, experimental_loss, sampli
         return res.tolist(), probs.tolist()
 
 @torch.no_grad()
-def seq2seq_sample(model, max_decoding_len, tokenizer, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
+def seq2seq_sampling(model, max_decoding_len, tokenizer, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
     top_whatever = top_k_logits if isinstance(top_w, int) else top_p_logits
     x, x_lens, x_pos, y, y_len, y_pos = inp
     context, enc_mem = model.compute_enc_context(x, x_lens)
@@ -183,8 +183,7 @@ def seq2seq_sample(model, max_decoding_len, tokenizer, inp, top_w, temparature, 
     existence = [True] * batch_size
     num_left = batch_size
     next_y = torch.ones(batch_size, 1).fill_(tokenizer.bos_id).type_as(x).to(x.device)
-    next_y = torch.cat([next_y, torch.zeros(batch_size, 1).fill_(179).type_as(x).to(x.device)], 1)
-    next_y_ = torch.cat([next_y, torch.zeros(batch_size, seq_len-1).fill_(tokenizer.padding_id).type_as(x).to(x.device)], 1)
+    
     for step in range(max_decoding_len):
         if num_left == 0:
             break
@@ -207,7 +206,7 @@ def seq2seq_sample(model, max_decoding_len, tokenizer, inp, top_w, temparature, 
             sampled = torch.multinomial(torch.softmax(logits,-1),1)
             
             next_y = torch.cat([next_y, sampled],dim=-1)
-
+            
             
             for batch_idx in range(bs):
                 if existence[batch_idx] == False:
@@ -219,4 +218,3 @@ def seq2seq_sample(model, max_decoding_len, tokenizer, inp, top_w, temparature, 
                 else:
                     dec_result[batch_idx].append(cur_token_id) # check if token id is str?
     return dec_result
-

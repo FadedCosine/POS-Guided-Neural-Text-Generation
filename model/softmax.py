@@ -184,7 +184,7 @@ class Factorized_SoftmaxV2(nn.Module):
         self.logits = nn.Parameter(torch.Tensor(hidden_dim, vocab_size))
 
     def hard_cluster_logit(self, x, top_w, ishard=True):
-        print("x is ", x)
+        
         def check_shorts(logits, top_w):
             if isinstance(top_w,int): #if case is top_k
                 # print(((logits != 0).sum(dim=1) < top_w).sum())

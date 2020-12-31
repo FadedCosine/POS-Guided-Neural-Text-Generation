@@ -7,12 +7,13 @@ def get_files(path):
     paths = []
     if os.path.isfile(path):
         # Simple file
-        if 'iternums' not in path and fname.endswith(".json"):
+        if 'iternums' not in path and path.endswith(".json"):
             paths.append(path)
     elif os.path.isdir(path):
         # Directory
         for (dirpath, _, fnames) in os.walk(path):
             for fname in fnames:
+                print(fname)
                 if 'iternums' not in path and fname.endswith(".json"):
                     paths.append(os.path.join(dirpath, fname))
     return paths
@@ -40,21 +41,25 @@ def main():
     self_bleu_gt = {}
 
     for filename in filenames:
+        print("filename is ", filename)
         source = []
         predict = []
         gt = []
         with open(filename, "r") as f:
             for line in f:
                 o = json.loads(line)
-                source.append(o['prefix'].split()[1:-1])
-                predict.append(o['decoded_predict'].split())
-                gt.append(o['decoded_true'].split()[1:-1])
-                # for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-                #     source.append(sour)
-                #     predict.append(pred)
-                #     gt.append(gt_)
-                
-
+                # source.append(o['prefix'].split()[1:-1])
+                # predict.append(o['decoded_predict'].split())
+                # gt.append(o['decoded_true'].split()[1:-1])
+                for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
+                    # print(" ".join(sour[1:-1]))
+                    # print(" ".join(pred))
+                    # print(" ".join(gt_[1:-1]))
+                    # print()
+                    source.append(sour)
+                    predict.append(pred)
+                    gt.append(gt_)
+    
         sb[filename] = bleu_upto(source, predict, 5)
         bleu[filename] = bleu_upto(gt, predict, 5)
         self_bleu_gt[filename] = bleu_upto(source, gt, 5)

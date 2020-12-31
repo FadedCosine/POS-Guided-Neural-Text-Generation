@@ -142,4 +142,6 @@ class EMNLPArgument:
                 sample_basename += '_mode-{}'.format(data['sampling_mode'])
             elif data['experimental_loss'] == 3:
                 sample_basename += '_mode-{}-pos-topp-{}-topk-{}'.format(data['sampling_mode'], data['pos_top_p'], data['pos_top_k'])
+            if data['beam_size'] > 0:
+                sample_basename += "-beam{}".format(data['beam_size'])
             data['sampled_savepath'] = os.path.join('data','sampled','{}'.format(data['dataset']), sample_dirname,sample_basename)

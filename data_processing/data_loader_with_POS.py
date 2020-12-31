@@ -321,6 +321,7 @@ if __name__ == '__main__':
     build_vocab = BUILD_VOCAB_FUNCTION[args.tag_tool]
     prepare_dataset = PREPARE_DATASET_FUNCTION[args.tag_tool]
     if not os.path.exists(token_vocab_path) or not os.path.exists(pos_vocab_path):
+        logger.info("build vocab")
         build_vocab(args, data_path)
  
     logger.info("require vocab size is {}".format(args.vocab_size))

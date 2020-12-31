@@ -116,9 +116,9 @@ def generate_seq2seq_sample(args, model, batchfier):
             pos_top_w = args.pos_top_k
         if args.beam_size > 0:
             beam_Sequence = seq2seq_beam_search(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature, args.experimental_loss, args.beam_size, args.sampling_mode, pos_top_w)
-            res = []
-            for beam in beam_Sequence:
-                res.append([sentence.output for sentence in beam])
+            res = [sentence.output for sentence in beam_Sequence]
+            # for beam in beam_Sequence:
+            #     res.append([sentence.output for sentence in beam])
 
         else:
             res = seq2seq_sampling(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature,
@@ -133,6 +133,11 @@ def generate_seq2seq_sample(args, model, batchfier):
         o['decoded_predict'] = [args.token_tokenizer.convert_ids_to_words(item) for item in res]
         o['decoded_true'] = [args.token_tokenizer.convert_ids_to_words(item) for item in gt.tolist()]
         print(json.dumps(o), file=cache_file, flush=True)
+        for prefix, pred, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
+            print(" ".join(prefix[1:-1]))
+            print(" ".join(pred[:-1]))
+            print(" ".join(gt[1:-1]))
+            print()
         if idx % 1 == 0:
             logger.info("res is {}".format(res))
             logger.info("Finish generating {}/{} batch.".format(idx, tot_len))

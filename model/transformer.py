@@ -385,16 +385,5 @@ class Transformer(nn.Module):
             out = self.final.soft_cluster_logit(out)
         return out
 
-    def beam_search(self, enc_input, enc_input_len, dec_input, beam_size=None,
-				 max_sequence_length=None, length_normalization_factor=0.0, top_p=0, top_k = 0,
-				 get_attention=False):
-        context, enc_mem = self.compute_enc_context(enc_input, enc_input_len)
-        generator = SequenceGenerator(
-			decode_step=self.decode_step,
-			beam_size=beam_size,
-			max_sequence_length=max_sequence_length,
-			get_attention=get_attention,
-			length_normalization_factor=length_normalization_factor)
-        return generator.beam_search(dec_input, top_k=top_k, top_p=top_p)
 
     

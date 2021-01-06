@@ -87,7 +87,6 @@ def pos_tag_by_core(read_file_name, write_dirty_name):
     write_file.close()
 
 
-
 def pos_tag_by_flair(read_file_name, write_dirty_name):
     from flair.models import SequenceTagger
     from flair.data import Sentence

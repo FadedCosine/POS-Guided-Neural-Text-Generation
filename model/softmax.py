@@ -381,6 +381,10 @@ class POS_Guided_Softmax(nn.Module):
         cluster_ll = torch.log_softmax(cl, dim=1)
         nll = torch.zeros_like(y,
                                dtype=x.dtype, device=x.device)
+        """
+        值得注意的是，就算self.logits中包含了bos、eos、padding的位置，但是因为pos2token只包含了原本的pos加上一个额外的eos，
+        所以不会利用到bos和padding的logits
+        """
         for i in range(self.n_clusters):
             # 选出y_pos中pos是当前i的位置
             mask = (y_pos == i)
@@ -389,12 +393,13 @@ class POS_Guided_Softmax(nn.Module):
             logits_weights = self.logits[:, self.pos2token[i]]
             if indices.numel() == 0:
                 continue
-            # 得到当前需要用于更新的那些y，在当前pos的词表中的id
+            # 得到当前需要用于更新的那些y，在当前pos的词表中的id， target_i：[pos_i_len]
             target_i = self.token_in_pos_id[i][y[indices]].long()
             
             # tail_logit : [pos_i_len, pos_i_vocab_size]
             tail_logit = torch.matmul(x[indices], logits_weights)
-            tail_logprob_i = torch.log_softmax(tail_logit, dim=1) # [b,vocab]
+            tail_logprob_i = torch.log_softmax(tail_logit, dim=1) # [pos_i_len, pos_i_vocab_size]
+            # 注意，此时tail_logprob_i中[i][j]表示的是y中的[i]个pos为当前pos的位置上的token，在当前pos的token list中选取词的各个token的概率
            
             nll[indices] = - cluster_ll[indices, i] - tail_logprob_i.gather(1,target_i[:,None]).squeeze(1)
         return nll

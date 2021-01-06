@@ -116,10 +116,6 @@ def build_vocab_with_core(args, write_path):
         for token_item in token_vocab:
             token = token_item[0]
             if token != "<unk>": #词汇表中不包括 <unk>
-                if token == "-LRB-":
-                    token = "("
-                elif token == "-RRB-":
-                    token = ")"
                 f.write("{}\n".format(token))
 
 def prepare_dataset_with_flair(args, data_path, tokenizer, pos_tokenizer):
@@ -202,8 +198,10 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
 
     # token_counter 用于计算词频，在F2-softmax当中有用
     token_counter = collections.Counter()
-    encode_decode_file = open("encode_decode_file_para.txt", "w")
+    
     for split, fname in core_dirty_files[args.dataset].items():
+        src_file = open(os.path.join(data_path, split+".src"), "w")
+        tgt_file = open(os.path.join(data_path, split+".tgt"), "w")
         logging.info("Prepare {} file.".format(split))
         dirty_file = open(fname, 'r')
         all_token_list = []
@@ -263,8 +261,10 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
             all_pos_list = filtered_pos_list
             logger.info("Filtered all_token_list len is {}".format(len(all_token_list)))
             logger.info("Filtered all_pos_list len is {}".format(len(all_pos_list)))
-            for token_list in all_token_list:
-                encode_decode_file.write(" ".join(token_tokenizer.convert_ids_to_words(token_list)) + '\n')
+        if dataset == "paraNMT":
+            for idx in range(0, len(all_token_list), 2):
+                src_file.write(" ".join(token_tokenizer.convert_ids_to_words(all_token_list[idx][1:-1])) + '\n')
+                tgt_file.write(" ".join(token_tokenizer.convert_ids_to_words(all_token_list[idx+1][1:-1])) + '\n')
         pickle.dump(all_token_list, open(os.path.join(data_path,'core_{split}_{size}.token'.format(split=split, size=args.vocab_size)), 'wb'))
         pickle.dump(all_pos_list, open(os.path.join(data_path,'core_{split}_{size}.pos'.format(split=split, size=args.vocab_size)), 'wb'))
   

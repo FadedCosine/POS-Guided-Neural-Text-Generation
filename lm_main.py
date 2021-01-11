@@ -133,12 +133,15 @@ if __name__ == '__main__':
     model = get_model(args)
     
     train_batchfier, test_batchfier = get_batchfier(args)
-    logger.info(args.savename)
+    
     
     trainer = get_trainer(args, model, train_batchfier, test_batchfier)
     prev_step = 0
     res = []
     init_epoch = 0
+    if args.model_checkpoint != "":
+        init_epoch = int(args.model_checkpoint.split('_')[-1]) + 1
+    logger.info(init_epoch)
     if args.finetune:
         args.n_epoch=1
     

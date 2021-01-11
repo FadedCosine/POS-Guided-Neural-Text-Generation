@@ -134,10 +134,10 @@ def generate_seq2seq_sample(args, model, batchfier):
         o['decoded_true'] = [args.token_tokenizer.convert_ids_to_words(item) for item in gt.tolist()]
         print(json.dumps(o), file=cache_file, flush=True)
         for prefix, pred, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-            print(" ".join(prefix[1:-1]))
-            print(" ".join(pred[:-1]))
-            print(" ".join(gt[1:-1]))
-            print()
+            logger.info(" ".join(prefix[1:-1]))
+            logger.info(" ".join(pred[:-1]))
+            logger.info(" ".join(gt[1:-1]))
+            logger.info("\n")
         if idx % 1 == 0:
             logger.info("res is {}".format(res))
             logger.info("Finish generating {}/{} batch.".format(idx, tot_len))

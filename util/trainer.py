@@ -118,11 +118,11 @@ class Trainer:
                 scheduler.step(self.step)
                 
                
-                if idx % args.report_step == 0:
+                if tot_cnt % args.report_step == 0:
                     logger.info(
                         "training loss : %f training ppl : %f, lr : %f, iter : %d / %d" % (
-                            step_loss / (self.update_step * args.report_step), math.exp(step_loss / (self.update_step*args.report_step)),
-                            scheduler.get_lr()[0], idx * self.update_step, total_len))
+                            step_loss / (args.report_step), math.exp(step_loss / (args.report_step)),
+                            scheduler.get_lr()[0], idx , total_len))
                     step_loss = 0
             
                 # torch.cuda.empty_cache()

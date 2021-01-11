@@ -125,8 +125,6 @@ def create_paranmt(read_filename, write_path, high=1, low=0, min_seq_len=10, sam
             write_file.write(" ".join(nlp.word_tokenize(pair[1])))
             write_file.write("\n")
            
-    
-    
 
 def sow_creat_para(input_file, output_file, wordEmbed_file, min_seq_len):
     output_file = open(output_file, 'w')

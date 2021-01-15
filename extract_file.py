@@ -25,16 +25,19 @@ def main():
     print("filenames is ", filenames)
     for filename in filenames:
         
-        write_ref_file = open(os.path.join(args.folderpath, filename.replace(".json", "_ref.txt")), 'w')
+        write_src_file = open(os.path.join(args.folderpath, filename.replace(".json", "_src.txt")), 'w')
+        write_tgt_file = open(os.path.join(args.folderpath, filename.replace(".json", "_tgt.txt")), 'w')
         write_hyp_file = open(os.path.join(args.folderpath, filename.replace(".json", "_hyp.txt")), 'w')
 
         with open(os.path.join(args.folderpath, filename), "r") as f:
             for line in f:
                 o = json.loads(line)
                 for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-                    write_ref_file.write(" ".join(sour[1:-1]) + '\n')
+                    write_src_file.write(" ".join(sour[1:-1]) + '\n')
+                    write_tgt_file.write(" ".join(sour[1:-1]) + '\n')
                     write_hyp_file.write(" ".join(pred) + '\n')
-        write_ref_file.close()
+        write_src_file.close()
+        write_tgt_file.close()
         write_hyp_file.close()
 
 

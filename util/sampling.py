@@ -216,5 +216,5 @@ def seq2seq_sampling(model, max_decoding_len, tokenizer, inp, top_w, temparature
                     existence[batch_idx] = False
                     num_left -= 1
                 else:
-                    dec_result[batch_idx].append(cur_token_id) # check if token id is str?
+                    dec_result[batch_idx].append(cur_token_id)
     return dec_result

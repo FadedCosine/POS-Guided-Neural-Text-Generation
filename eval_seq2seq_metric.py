@@ -39,6 +39,8 @@ def main():
     bleu = {}
     repit = {}
     self_bleu_gt = {}
+    wer = {}
+    rouge = {}
 
     for filename in filenames:
         print("filename is ", filename)
@@ -56,16 +58,18 @@ def main():
                     # print(" ".join(pred))
                     # print(" ".join(gt_[1:-1]))
                     # print()
-                    source.append(sour)
+                    source.append(sour[1:-1])
                     predict.append(pred)
-                    gt.append(gt_)
+                    gt.append(gt_[1:-1])
     
-        sb[filename] = bleu_upto(source, predict, 5)
+        sb[filename] = selfbleu(predict, 5)
         bleu[filename] = bleu_upto(gt, predict, 5)
+        rouge[filename] = rogue(gt, predict, 5)
         self_bleu_gt[filename] = bleu_upto(source, gt, 5)
         dist[filename] = distinct_upto(predict, 5)
         kd[filename] = kld(gt, predict, 1)
         repit[filename] = repetition(predict)
+        wer[filename] = self_wer(source, predict)
         m = ms_jaccard(gt, predict, 5)
         msj[filename] = m
 
@@ -74,13 +78,14 @@ def main():
             s.update(i)
         uniq[filename] = len(s)
 
-    print('--------------------self-bleu(Down)----------------------')
-    for i in sb.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *sb[i]))
 
     print('--------------------bleu(Up)----------------------')
     for i in bleu.keys():
         print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *bleu[i]))
+
+    print('--------------------rouge(Up)----------------------')
+    for i in bleu.keys():
+        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *rouge[i]))
 
     print('--------------------self-bleu gt(Down)----------------------')
     for i in self_bleu_gt.keys():
@@ -94,6 +99,10 @@ def main():
     for i in msj.keys():
         print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i),  *msj[i]))
 
+    print('--------------------self-bleu(Down)----------------------')
+    for i in sb.keys():
+        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *sb[i]))
+
     print('--------------------distinct(Up)----------------------')
     for i in dist.keys():
         print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *dist[i]))
@@ -101,6 +110,10 @@ def main():
     print('--------------------repetition(Down)----------------------')
     for i in bleu.keys():
         print('{:<65}{:.6f}'.format(os.path.basename(i), repit[i]))
+
+    print('--------------------self-WER(UP)----------------------')
+    for i in bleu.keys():
+        print('{:<65}{:.6f}'.format(os.path.basename(i), wer[i]))
 
     print('--------------------uniq_seq(Up)----------------------')
     for i in uniq.keys():

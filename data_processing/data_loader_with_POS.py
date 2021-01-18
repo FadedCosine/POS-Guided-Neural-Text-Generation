@@ -182,7 +182,7 @@ def prepare_dataset_with_flair(args, data_path, tokenizer, pos_tokenizer):
     with open(os.path.join(data_path,'flair_{size}_token_in_pos_id.pkl'.format(size=args.vocab_size)), "wb") as writer:
         pickle.dump(token_in_pos_id, writer)
 
-def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset="wiki103", filter_bad_items=True, unk_rate=0.3, min_encode_len=10):
+def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset="wiki103", filter_bad_items=True, unk_rate=0.3, min_encode_len=10, max_encode_len=64):
     """使用standford core nlp标注的dirty，和由词表构建的tokenizer，来把token和pos转换成token_id和pos_id，并构建pos2word
 
     Args:
@@ -243,8 +243,11 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
             filtered_token_list = []
             filtered_pos_list =[]
             for idx in range(0, len(all_token_list), 2):
-                if len(all_token_list[idx]) < min_encode_len or len(all_token_list[idx + 1]) < min_encode_len:
+                if len(all_token_list[idx]) < min_encode_len or len(all_token_list[idx + 1]) < min_encode_len: #短于最短长度排除
                     continue
+                if split == "test":
+                    if len(all_token_list[idx]) > max_encode_len or len(all_token_list[idx + 1]) > max_encode_len: #长于最大长度排除
+                        continue
                 token_list_x = np.array(all_token_list[idx])
                 token_list_y = np.array(all_token_list[idx + 1])
                 x_unk_rate = (token_list_x == token_tokenizer.unk_id).sum() / len(token_list_x)

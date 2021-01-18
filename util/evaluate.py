@@ -186,7 +186,9 @@ def distinct_n_corpus_level(sentences, n):
     :param n: int, ngram.
     :return: float, the average value.
     """
-    return sum(distinct_n_sentence_level(sentence, n) for sentence in sentences) / len(sentences)
+    
+
+    return sum(distinct_n_sentence_level(sentence[0], n) for sentence in sentences) / len(sentences)
 
 
 def bleu_single(reference,hypothesis,n_gram):

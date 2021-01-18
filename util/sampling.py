@@ -174,47 +174,50 @@ def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, samp
         return res.tolist(), probs.tolist()
 
 @torch.no_grad()
-def seq2seq_sampling(model, max_decoding_len, tokenizer, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
+def seq2seq_sampling(model, max_decoding_len, tokenizer, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10, sampling_num=1):
     top_whatever = top_k_logits if isinstance(top_w, int) else top_p_logits
     x, x_lens, x_pos, y, y_len, y_pos = inp
     context, enc_mem = model.compute_enc_context(x, x_lens)
     batch_size, seq_len = x.size()
-    dec_result = [[] for i in range(batch_size)]
-    existence = [True] * batch_size
-    num_left = batch_size
-    next_y = torch.ones(batch_size, 1).fill_(tokenizer.bos_id).type_as(x).to(x.device)
-    
-    for step in range(max_decoding_len):
-        if num_left == 0:
-            break
-        with torch.no_grad():
-            bs, l = next_y.size()
-            lens = torch.LongTensor([l] * bs).to(x.device)
-            if experimental_loss == 1 or experimental_loss == 2 :
-                logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, top_w)
-            elif experimental_loss == 3:
-                logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, pos_top_w)
-            else:
-                logits = model.decode_step(x_lens, next_y, lens, context, 0, None) # 除了f2和pos，其他的模型的最后一次皆为一层linear，必有sampling_mode为0
-            # sampling输出的logits还不是最终的概率，而是一个logits，需要经过softmax
-            
-            logits = top_whatever(logits, top_w)
-            logits = logits.view(bs,l,-1)
-            logits = logits[:,-1,:] / temparature
-            
-            saved_logits = logits
-            sampled = torch.multinomial(torch.softmax(logits,-1),1)
-            
-            next_y = torch.cat([next_y, sampled],dim=-1)
-            
-            
-            for batch_idx in range(bs):
-                if existence[batch_idx] == False:
-                    continue
-                cur_token_id = next_y[batch_idx, -1].item()
-                if cur_token_id == tokenizer.eos_id:
-                    existence[batch_idx] = False
-                    num_left -= 1
+    sample_results = [[[] for j in range(sampling_num)] for i in range(batch_size)]
+    for sample_idx in range(sampling_num):
+        # dec_result = [[] for i in range(batch_size)]
+        existence = [True] * batch_size
+        num_left = batch_size
+        next_y = torch.ones(batch_size, 1).fill_(tokenizer.bos_id).type_as(x).to(x.device)
+        for step in range(max_decoding_len):
+            if num_left == 0:
+                break
+            with torch.no_grad():
+                bs, l = next_y.size()
+                lens = torch.LongTensor([l] * bs).to(x.device)
+                if experimental_loss == 1 or experimental_loss == 2 :
+                    logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, top_w)
+                elif experimental_loss == 3:
+                    logits = model.decode_step(x_lens, next_y, lens, context, sampling_mode, pos_top_w)
                 else:
-                    dec_result[batch_idx].append(cur_token_id) # check if token id is str?
-    return dec_result
+                    logits = model.decode_step(x_lens, next_y, lens, context, 0, None) # 除了f2和pos，其他的模型的最后一次皆为一层linear，必有sampling_mode为0
+                # sampling输出的logits还不是最终的概率，而是一个logits，需要经过softmax
+                
+                logits = top_whatever(logits, top_w)
+                logits = logits.view(bs,l,-1)
+                logits = logits[:,-1,:] / temparature
+                
+                saved_logits = logits
+                sampled = torch.multinomial(torch.softmax(logits,-1),1)
+                
+                next_y = torch.cat([next_y, sampled],dim=-1)
+                
+                
+                for batch_idx in range(bs):
+                    if existence[batch_idx] == False:
+                        continue
+                    cur_token_id = next_y[batch_idx, -1].item()
+                    if cur_token_id == tokenizer.eos_id:
+                        existence[batch_idx] = False
+                        num_left -= 1
+                    else:
+                        # dec_result[batch_idx].append(cur_token_id) # check if token id is str?
+                        sample_results[batch_idx][sample_idx].append(cur_token_id)
+        torch.cuda.empty_cache()
+    return sample_results

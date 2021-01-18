@@ -194,19 +194,19 @@ class EMNLPTrainer(Trainer):
     
 
     def test_d1_epoch(self,args):
-        from lm_sample import generate_sample
+        from lm_sample import generate_seq2seq_sample
         from util.evaluate import distinct_n_corpus_level
 
         model = self.model
         batchfier = self.test_batchfier
 
-        if isinstance(batchfier, IterableDataset):
-            batchfier = DataLoader(dataset=batchfier,
-                                   batch_size=batchfier.size,
-                                   shuffle=False,
-                                   collate_fn=batchfier.collate, )
+        # if isinstance(batchfier, IterableDataset):
+        #     batchfier = DataLoader(dataset=batchfier,
+        #                            batch_size=batchfier.size,
+        #                            shuffle=False,
+        #                            collate_fn=batchfier.collate, )
         model.eval()
-        df=generate_sample(args,model,batchfier)
+        df=generate_seq2seq_sample(args,model,batchfier)
         d_1_score=distinct_n_corpus_level(df["decoded_predict"],1)
 
         return d_1_score

@@ -70,6 +70,7 @@ class EMNLPArgument:
         parser.add_argument("--top-p", type=float, default=0.0)
         parser.add_argument("--pos-top-k", type=int, default=0)
         parser.add_argument("--pos-top-p", type=float, default=0.0)
+        parser.add_argument("--generate-num", type=int, default=1)
         parser.add_argument("--temperature", type=float, default=1)
 
         return parser.parse_args()
@@ -134,14 +135,14 @@ class EMNLPArgument:
         if data['division'] == 'uniform':
             savename += '_uniform'
         data['savename'] = os.path.join('data/checkpoint','{}'.format(data['dataset']), savename)
-        if not self.is_train:
-            sample_dirname = os.path.join('prefix-{}_nsample-{}'.format(data['nprefix'],data['ngenerate']),
-                                          'topp-{}-topk-{}-temp-{}'.format(data['top_p'], data['top_k'], data['temperature']))
-            sample_basename = '{}'.format(data['loss_type'])
-            if data['experimental_loss'] == 1 or data['experimental_loss'] == 2:
-                sample_basename += '_mode-{}'.format(data['sampling_mode'])
-            elif data['experimental_loss'] == 3:
-                sample_basename += '_mode-{}-pos-topp-{}-topk-{}'.format(data['sampling_mode'], data['pos_top_p'], data['pos_top_k'])
-            if data['beam_size'] > 0:
-                sample_basename += "-beam{}".format(data['beam_size'])
-            data['sampled_savepath'] = os.path.join('data','sampled','{}'.format(data['dataset']), sample_dirname,sample_basename)
+        # if not self.is_train:
+        sample_dirname = os.path.join('prefix-{}_nsample-{}'.format(data['nprefix'],data['ngenerate']),
+                                        'topp-{}-topk-{}-temp-{}'.format(data['top_p'], data['top_k'], data['temperature']))
+        sample_basename = '{}'.format(data['loss_type'])
+        if data['experimental_loss'] == 1 or data['experimental_loss'] == 2:
+            sample_basename += '_mode-{}'.format(data['sampling_mode'])
+        elif data['experimental_loss'] == 3:
+            sample_basename += '_mode-{}-pos-topp-{}-topk-{}'.format(data['sampling_mode'], data['pos_top_p'], data['pos_top_k'])
+        if data['beam_size'] > 0:
+            sample_basename += "-beam{}".format(data['beam_size'])
+        data['sampled_savepath'] = os.path.join('data','sampled','{}'.format(data['dataset']), sample_dirname,sample_basename)

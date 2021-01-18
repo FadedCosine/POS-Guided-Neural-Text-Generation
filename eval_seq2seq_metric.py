@@ -17,7 +17,6 @@ def get_files(path):
         # Directory
         for (dirpath, _, fnames) in os.walk(path):
             for fname in fnames:
-                logger.info(fname)
                 if 'iternums' not in path and fname.endswith(".json"):
                     paths.append(os.path.join(dirpath, fname))
     return paths
@@ -36,8 +35,6 @@ def main():
     folderpath = os.path.join(args.folderpath, "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k))
     logger.info("=" * 20 + "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k) + "=" * 20)
     filenames = sorted(get_files(folderpath))
-
-
     sb = {}
     kd = {}
     msj = {}
@@ -66,7 +63,7 @@ def main():
                     # logger.info(" ".join(gt_[1:-1]))
                     # logger.info()
                     source.append(sour[1:-1])
-                    predict.append(pred)
+                    predict.append(pred[0])
                     gt.append(gt_[1:-1])
     
         sb[filename] = selfbleu(predict, 5)
@@ -124,7 +121,7 @@ def main():
 
     logger.info('--------------------uniq_seq(Up)----------------------')
     for i in uniq.keys():
-        logger.info('{:<65}'.format(os.path.basename(i), uniq[i]))
+        logger.info('{:<65}{}'.format(os.path.basename(i), uniq[i]))
 
 if __name__ =='__main__':
     main()

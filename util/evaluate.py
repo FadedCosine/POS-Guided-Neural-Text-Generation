@@ -5,6 +5,7 @@ import math
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction, ngrams, brevity_penalty
 from collections import Counter
 from fractions import Fraction
+from .wer import *
 import numpy as np
 from rouge import Rouge
 
@@ -138,7 +139,12 @@ def rogue(hyps, refs, avg=True):
     scores = rouge.get_scores(hyps, refs, avg=avg)
     return [scores['rouge-1']['f'], scores['rouge-2']['f'], scores['rouge-l']['f']]
 
-
+def self_wer(reference, hypothesis):
+    score = 0.0
+    for refer, hypo in zip(reference, hypothesis):
+        score += wer(refer, hypo)   
+    return score / len(reference)
+    
 def distinct_n_sentence_level(sentence, n):
     """
     Compute distinct-N for a single sentence.

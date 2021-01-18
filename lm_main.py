@@ -74,7 +74,7 @@ def get_loss(args):
     elif lt == 'unlikelihood-token':
         loss = CandidateLoss(rank_alpha=1.0, padding_idx=args.token_tokenizer.padding_id) # unlikelihood token loss
     elif lt == 'face':
-        loss = FACELoss(padding_idx=args.token_tokenizer.padding_id,vocab_size=args.vocab_size,ignore_freq_index=[args.token_tokenizer.padding_id],ft="out",wt="pre")
+        loss = FACELoss(padding_idx=args.token_tokenizer.padding_id,vocab_size=args.token_tokenizer.vocab_size,ignore_freq_index=[args.token_tokenizer.padding_id],ft="out",wt="pre")
         # if loss.ft=="out" and args.train_phase=="train":
         #     raise NotImplementedError("ft-out only can be used in fine-tune phase")
     elif "-seq" in lt: # unlikelihood token and seq loss

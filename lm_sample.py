@@ -90,7 +90,7 @@ def generate_LM_sample(args, model, batchfier):
     return pd.DataFrame({'prefix':prefixs, 'decoded_predict':generated,'decoded_true':truths})
 
 @torch.no_grad()
-def generate_seq2seq_sample(args, model, batchfier):
+def generate_seq2seq_sample(args, model, batchfier, max_decoding_len=64):
     prefixs = []
     truths = []
     generated = []
@@ -121,8 +121,13 @@ def generate_seq2seq_sample(args, model, batchfier):
             #     res.append([sentence.output for sentence in beam])
 
         else:
-            res = seq2seq_sampling(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature,
-                            args.experimental_loss, args.sampling_mode, pos_top_w)
+            # try:
+            res = seq2seq_sampling(model, max_decoding_len, args.token_tokenizer, inp, top_w, args.temperature,
+                        args.experimental_loss, args.sampling_mode, pos_top_w, args.generate_num)
+            # except RuntimeError:
+            #     logger.info("RuntimeError, continue!")
+            #     torch.cuda.empty_cache()
+            #     continue
         
         generated.extend(res)
         truths.extend(gt.tolist())
@@ -130,17 +135,21 @@ def generate_seq2seq_sample(args, model, batchfier):
         idx += 1
         o = {}
         o['prefix'] = [args.token_tokenizer.convert_ids_to_words(item) for item in input_x.tolist()]
-        o['decoded_predict'] = [args.token_tokenizer.convert_ids_to_words(item) for item in res]
+        o['decoded_predict'] = [[args.token_tokenizer.convert_ids_to_words(item) for item in batch_item]for batch_item in res]
         o['decoded_true'] = [args.token_tokenizer.convert_ids_to_words(item) for item in gt.tolist()]
         print(json.dumps(o), file=cache_file, flush=True)
-        for prefix, pred, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-            logger.info(" ".join(prefix[1:-1]))
-            logger.info(" ".join(pred[:-1]))
-            logger.info(" ".join(gt[1:-1]))
+        for prefix, preds, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
+            logger.info("Source : " + " ".join(prefix[1:-1]))
+            logger.info("Target : " + " ".join(gt[1:-1]))
+            logger.info("Generated : ")
+            for pred in preds:
+                logger.info(" ".join(pred))
+            
             logger.info("\n")
         if idx % 1 == 0:
             logger.info("res is {}".format(res))
             logger.info("Finish generating {}/{} batch.".format(idx, tot_len))
+        torch.cuda.empty_cache()
     return pd.DataFrame({'prefix':prefixs, 'decoded_predict':generated,'decoded_true':truths})
 
 if __name__ == '__main__':

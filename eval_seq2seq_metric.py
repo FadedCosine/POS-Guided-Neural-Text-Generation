@@ -2,7 +2,11 @@ from util.counter import *
 from util.evaluate import *
 import argparse
 import json
-
+import logging
+logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                    datefmt='%d-%m-%Y:%H:%M:%S')
+logging.getLogger().setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 def get_files(path):
     paths = []
     if os.path.isfile(path):
@@ -13,7 +17,7 @@ def get_files(path):
         # Directory
         for (dirpath, _, fnames) in os.walk(path):
             for fname in fnames:
-                print(fname)
+                logger.info(fname)
                 if 'iternums' not in path and fname.endswith(".json"):
                     paths.append(os.path.join(dirpath, fname))
     return paths
@@ -22,14 +26,17 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset',type=str)
     parser.add_argument('--folderpath',type=str)
+    parser.add_argument('--top-p',type=float)
+    parser.add_argument('--top-k',type=int)
     return parser.parse_args()
 
 
 def main():
     args = get_args()
-    print(os.path.basename(args.folderpath))
+    folderpath = os.path.join(args.folderpath, "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k))
+    logger.info("=" * 20 + "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k) + "=" * 20)
+    filenames = sorted(get_files(folderpath))
 
-    filenames = get_files(args.folderpath)
 
     sb = {}
     kd = {}
@@ -43,7 +50,7 @@ def main():
     rouge = {}
 
     for filename in filenames:
-        print("filename is ", filename)
+        logger.info("filename is {}".format(filename))
         source = []
         predict = []
         gt = []
@@ -54,10 +61,10 @@ def main():
                 # predict.append(o['decoded_predict'].split())
                 # gt.append(o['decoded_true'].split()[1:-1])
                 for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-                    # print(" ".join(sour[1:-1]))
-                    # print(" ".join(pred))
-                    # print(" ".join(gt_[1:-1]))
-                    # print()
+                    # logger.info(" ".join(sour[1:-1]))
+                    # logger.info(" ".join(pred))
+                    # logger.info(" ".join(gt_[1:-1]))
+                    # logger.info()
                     source.append(sour[1:-1])
                     predict.append(pred)
                     gt.append(gt_[1:-1])
@@ -79,45 +86,45 @@ def main():
         uniq[filename] = len(s)
 
 
-    print('--------------------bleu(Up)----------------------')
+    logger.info('--------------------bleu(Up)----------------------')
     for i in bleu.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *bleu[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *bleu[i]))
 
-    print('--------------------rouge(Up)----------------------')
+    logger.info('--------------------rouge(Up)----------------------')
     for i in bleu.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *rouge[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *rouge[i]))
 
-    print('--------------------self-bleu gt(Down)----------------------')
+    logger.info('--------------------self-bleu gt(Down)----------------------')
     for i in self_bleu_gt.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *self_bleu_gt[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *self_bleu_gt[i]))
 
-    print('--------------------kl-divergence(Down)----------------------')
+    logger.info('--------------------kl-divergence(Down)----------------------')
     for i in kd.keys():
-        print('{:<65}{:.4f}'.format(os.path.basename(i), kd[i]))
+        logger.info('{:<65}{:.4f}'.format(os.path.basename(i), kd[i]))
 
-    print('--------------------ms_jaccard(Up)----------------------')
+    logger.info('--------------------ms_jaccard(Up)----------------------')
     for i in msj.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i),  *msj[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i),  *msj[i]))
 
-    print('--------------------self-bleu(Down)----------------------')
+    logger.info('--------------------self-bleu(Down)----------------------')
     for i in sb.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *sb[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *sb[i]))
 
-    print('--------------------distinct(Up)----------------------')
+    logger.info('--------------------distinct(Up)----------------------')
     for i in dist.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *dist[i]))
+        logger.info('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *dist[i]))
 
-    print('--------------------repetition(Down)----------------------')
+    logger.info('--------------------repetition(Down)----------------------')
     for i in bleu.keys():
-        print('{:<65}{:.6f}'.format(os.path.basename(i), repit[i]))
+        logger.info('{:<65}{:.6f}'.format(os.path.basename(i), repit[i]))
 
-    print('--------------------self-WER(UP)----------------------')
+    logger.info('--------------------self-WER(UP)----------------------')
     for i in bleu.keys():
-        print('{:<65}{:.6f}'.format(os.path.basename(i), wer[i]))
+        logger.info('{:<65}{:.6f}'.format(os.path.basename(i), wer[i]))
 
-    print('--------------------uniq_seq(Up)----------------------')
+    logger.info('--------------------uniq_seq(Up)----------------------')
     for i in uniq.keys():
-        print('{:<65}'.format(os.path.basename(i)),  uniq[i])
+        logger.info('{:<65}'.format(os.path.basename(i), uniq[i]))
 
 if __name__ =='__main__':
     main()

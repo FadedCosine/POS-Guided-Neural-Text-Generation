@@ -66,8 +66,9 @@ def main():
                     predict.append(pred[0])
                     gt.append(gt_[1:-1])
     
-        sb[filename] = selfbleu(predict, 5)
+        # sb[filename] = selfbleu(predict, 5)
         bleu[filename] = bleu_upto(gt, predict, 5)
+        sb[filename] = bleu_upto(source, predict, 5)
         rouge[filename] = rogue(gt, predict, 5)
         self_bleu_gt[filename] = bleu_upto(source, gt, 5)
         dist[filename] = distinct_upto(predict, 5)

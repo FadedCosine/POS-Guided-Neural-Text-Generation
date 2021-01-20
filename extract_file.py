@@ -35,7 +35,7 @@ def main():
                 for sour, pred, gt_ in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
                     write_src_file.write(" ".join(sour[1:-1]) + '\n')
                     write_tgt_file.write(" ".join(gt_[1:-1]) + '\n')
-                    write_hyp_file.write(" ".join(pred) + '\n')
+                    write_hyp_file.write(" ".join(pred[0]) + '\n')
         write_src_file.close()
         write_tgt_file.close()
         write_hyp_file.close()

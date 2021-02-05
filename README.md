@@ -36,10 +36,10 @@ cd ../POS-Guided-Neural-Text-Generation
 
 
 ### Data preprocess
-First, [download wikitext-103](https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip) to `data/wikitext-103` and [ParaNMT-50M](https://drive.google.com/file/d/1rbF3daJjCsa1-fu2GANeJd2FBXos1ugD/view) to `data/paraNMT` .
+First, download [wikitext-103](https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip) to `data/wikitext-103` and [ParaNMT-50M](https://drive.google.com/file/d/1rbF3daJjCsa1-fu2GANeJd2FBXos1ugD/view) to `data/paraNMT` .
 
 
-Next, download the Stanford [CoreNLP](http://nlp.stanford.edu/software/stanford-corenlp-full-2018-02-27.zip). And start a local Stanford CoreNLP Server.
+Next, download the [Stanford CoreNLP](http://nlp.stanford.edu/software/stanford-corenlp-full-2018-02-27.zip). And start a local Stanford CoreNLP Server.
 ```java
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9876 -timeout 15000
 ```

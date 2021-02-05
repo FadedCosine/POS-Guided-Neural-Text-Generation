@@ -1,4 +1,4 @@
-name: yzx_py36
+name: POS_Softmax
 channels:
   - conda-forge
   - pytorch
@@ -167,5 +167,4 @@ dependencies:
     - torch==1.3.1
     - transformers==3.0.2
     - wcwidth==0.2.5
-prefix: /home/yangzhixian/.conda/envs/yzx_py36
 

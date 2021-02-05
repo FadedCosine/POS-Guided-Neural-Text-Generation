@@ -32,7 +32,6 @@ def main():
     repit = {}
     rep_1 = {}
     w_rep_1 = {}
-    REPEAT_CONTEXT_LENGTHS = [16, 32, 64]
     for filename in filenames:
         logger.info("read_pickle : {}".format(filename))
         df = pd.read_pickle(filename)
@@ -49,12 +48,6 @@ def main():
 
         m = ms_jaccard(gt, predict, 5)
         msj[filename] = m
-        rep_1[filename] = []
-        w_rep_1[filename] = []
-        for cl in REPEAT_CONTEXT_LENGTHS:
-            avg_pred_repeat, avg_pred_wrong_repeat, avg_gt_repeat = repeat_at_1(predict, gt, cl)
-            rep_1[filename].append(avg_pred_repeat)
-            w_rep_1[filename].append(avg_pred_wrong_repeat)
 
         s = set()
         for i in predict:

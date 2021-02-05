@@ -3,9 +3,7 @@
 export PYTHONPATH="./"
 echo $PYTHONPATH
 
-DATASET=paraNMT
+DATASET=wikitext-103
 python data_processing/data_loader_with_POS.py  \
-    --root ./data \
     --dataset $DATASET \
-    --encoder-class spbpe \
-    --vocab-size 100000;
+    --vocab-size 200000;

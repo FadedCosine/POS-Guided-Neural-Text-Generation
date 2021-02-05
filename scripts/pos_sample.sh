@@ -4,15 +4,15 @@ export PYTHONPATH="${PYTHONPATH}:../"
 echo $PYTHONPATH
 
 Mode=POS
-Data=paraNMT
+Data=wikitext-103
 
-for M in 1 2
+for M in 3
 do
-  CUDA_VISIBLE_DEVICES=2 python lm_sample.py \
+  CUDA_VISIBLE_DEVICES=0 python lm_sample.py \
       --saved-path data/checkpoint/$Data/_$Mode''_layer_6_lr_0.0001_cutoffs_17_core_epoch_8 \
       --dataset $Data \
       --loss-type $Mode \
-      --top-p 0.8 \
+      --top-p 0.3 \
       --pos-top-p 0.9 \
       --sampling-mode $M \
       --root ./data \

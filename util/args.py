@@ -86,7 +86,7 @@ class Argument:
         elif data['dataset'] == "paraNMT":
             data['add_special_token'] = True
 
-        dataset_fullname = self.acc_to_full[data['dataset']]
+        dataset_fullname = data['dataset']
 
         dirname = os.path.join(data['root'], dataset_fullname)
      

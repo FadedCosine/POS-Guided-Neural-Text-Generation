@@ -173,7 +173,7 @@ class BpttIterator:
             yield x, torch.LongTensor([batch_text.shape[1]]*self.size).to(self.device), x[:,1:]
 
 class BpttIteratorWithPOS:
-    def __init__(self, dataset, pos_dataset, batch_size, device='cuda', **kwargs):
+    def __init__(self, dataset, pos_dataset, batch_size, bptt_len, device='cuda', **kwargs):
         self.bptt_len = bptt_len
         self.dataset = dataset
         self.pos_dataset = pos_dataset

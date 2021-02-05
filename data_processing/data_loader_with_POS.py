@@ -301,7 +301,7 @@ def get_parser():
     parser.add_argument("--tag_tool", type=str, default="core",
                         help='parent directory path')
     parser.add_argument("--lower", action="store_true", help="If lower the text")
-    parser.add_argument("--vocab_size", type=int, default=270000)
+    parser.add_argument("--vocab-size", type=int, default=270000)
     parser.add_argument("--dataset", type=str, default="wikitext-103")
     return parser.parse_args()
 

@@ -7,3 +7,8 @@ DATASET=wikitext-103
 python data_processing/data_loader_with_POS.py  \
     --dataset $DATASET \
     --vocab-size 200000;
+
+DATASET=paraNMT
+python data_processing/data_loader_with_POS.py  \
+    --dataset $DATASET \
+    --vocab-size 100000;

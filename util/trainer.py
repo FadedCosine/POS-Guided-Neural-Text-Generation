@@ -194,7 +194,7 @@ class ExperTrainer(Trainer):
     
 
     def test_d1_epoch(self,args):
-        from lm_sample import generate_seq2seq_sample
+        from sample import generate_seq2seq_sample
         from util.evaluate import distinct_n_corpus_level
 
         model = self.model

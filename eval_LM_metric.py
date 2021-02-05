@@ -2,20 +2,26 @@ from data_processing.files import *
 from util.counter import *
 from util.evaluate import *
 import argparse
-
+import logging
+logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                    datefmt='%d-%m-%Y:%H:%M:%S')
+logging.getLogger().setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset',type=str)
+    parser.add_argument('--top-p',type=float)
+    parser.add_argument('--top-k',type=int)
     parser.add_argument('--folderpath',type=str)
     return parser.parse_args()
 
 
 def main():
     args = get_args()
-    print(os.path.basename(args.folderpath))
 
-    filenames = get_files(args.folderpath)
+    folderpath = os.path.join(args.folderpath, "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k))
+    logger.info("=" * 20 + "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k) + "=" * 20)
+    filenames = sorted(get_files(folderpath))
 
     sb = {}
     kd = {}
@@ -24,9 +30,11 @@ def main():
     dist = {}
     bleu = {}
     repit = {}
-
+    rep_1 = {}
+    w_rep_1 = {}
+    REPEAT_CONTEXT_LENGTHS = [16, 32, 64]
     for filename in filenames:
-
+        logger.info("read_pickle : {}".format(filename))
         df = pd.read_pickle(filename)
         predict = df['decoded_predict']
         gt = df['decoded_true']
@@ -41,44 +49,44 @@ def main():
 
         m = ms_jaccard(gt, predict, 5)
         msj[filename] = m
+        rep_1[filename] = []
+        w_rep_1[filename] = []
+        for cl in REPEAT_CONTEXT_LENGTHS:
+            avg_pred_repeat, avg_pred_wrong_repeat, avg_gt_repeat = repeat_at_1(predict, gt, cl)
+            rep_1[filename].append(avg_pred_repeat)
+            w_rep_1[filename].append(avg_pred_wrong_repeat)
 
         s = set()
         for i in predict:
             s.update(i)
         uniq[filename] = len(s)
 
-    print('--------------------repetition(Down)----------------------')
+
+    logger.info('--------------------repetition(Down)----------------------')
     for i in bleu.keys():
-        print('{:<65}{:.6f}'.format(os.path.basename(i), repit[i]))
+        logger.info('{:<65}{:.6f}'.format(os.path.basename(i), repit[i]))
 
 
-    print('--------------------self-bleu(Down)----------------------')
+    logger.info('--------------------self-bleu(Down)----------------------')
     for i in sb.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *sb[i]))
+        logger.info('{:<65}{:.3f}, {:.3f}, {:.3f}, {:.3f}'.format(os.path.basename(i), *sb[i]))
 
-    print('--------------------kl-divergence(Down)----------------------')
+    logger.info('--------------------kl-divergence(Down)----------------------')
     for i in kd.keys():
-        print('{:<65}{:.4f}'.format(os.path.basename(i), kd[i]))
+        logger.info('{:<65}{:.3f}'.format(os.path.basename(i), kd[i]))
 
-    print('--------------------ms_jaccard(Up)----------------------')
+    logger.info('--------------------ms_jaccard(Up)----------------------')
     for i in msj.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i),  *msj[i]))
+        logger.info('{:<65}{:.3f}, {:.3f}, {:.3f}'.format(os.path.basename(i),  *msj[i]))
 
-    print('--------------------distinct(Up)----------------------')
+    logger.info('--------------------distinct(Up)----------------------')
     for i in dist.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *dist[i]))
+        logger.info('{:<65}{:.3f}, {:.3f}, {:.3f}'.format(os.path.basename(i), *dist[i]))
 
-    print('--------------------Rep(Down)----------------------')
-    for i in dist.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *rep_1[i]))
-
-    print('--------------------Wrong Rep(Down)----------------------')
-    for i in dist.keys():
-        print('{:<65}{:.4f}, {:.4f}, {:.4f}'.format(os.path.basename(i), *w_rep_1[i]))
-
-    print('--------------------uniq_seq(Up)----------------------')
+    logger.info('--------------------uniq_seq(Up)----------------------')
     for i in uniq.keys():
-        print('{:<65}'.format(os.path.basename(i)),  uniq[i])
+        logger.info('{:<65}{}'.format(os.path.basename(i), uniq[i]))
+
 
 
 if __name__ =='__main__':

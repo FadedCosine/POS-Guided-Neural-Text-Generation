@@ -17,16 +17,11 @@ logging.getLogger().setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description='sow training')
-parser.add_argument('--data_path', default='./data/paraNMT',
+parser.add_argument('--data-path', default='./data/paraNMT',
                     help='data path')
-parser.add_argument('--input_file', default='./data/paraNMT/para-nmt-50m.txt',
-                    help='input file')
-parser.add_argument('--output_file', default='./data/paraNMT/filtered_para.txt',
-                    help='output_file file')
-parser.add_argument('--wordEmbed_file', default='./data/word_embedding/glove.6B.50d.txt',
-                    help='glove embeddings file')
-parser.add_argument('--filter_len', default=10, type=int,
+parser.add_argument('--filter-len', default=10, type=int,
                     help='least valid sentence token number')
+parser.add_argument('--corenlp-path', help='the path to the stanford corenlp')
 
 class wordEmbedding(object):
     def __init__(self, filename):
@@ -125,58 +120,6 @@ def create_paranmt(read_filename, write_path, corenlp_path, high=1, low=0, min_s
             write_file.write(" ".join(nlp.word_tokenize(pair[1])))
             write_file.write("\n")
            
-
-def sow_creat_para(input_file, output_file, wordEmbed_file, min_seq_len):
-    output_file = open(output_file, 'w')
-    wordEmbed_file = wordEmbed_file
-
-    stopWords = set(stopwords.words('english'))
-    punctuation = list(string.punctuation)
-
-    wordEmbed = wordEmbedding(wordEmbed_file)
-    logger.info("finished reading word embeddings")
-
-    total = 0
-    line_idx = 0
-    with open(input_file, 'r') as f:
-        for line in f:
-            line_idx += 1
-            if line_idx % 100000 == 0:
-                logger.info("finish {}/51400000 lines".format(line_idx))
-            line_split = line.split('\t')
-
-            sent1 = line_split[0].lower()
-            sent2 = line_split[1].lower()
-
-            tokens1 = word_tokenize(sent1)
-            tokens2 = word_tokenize(sent2)
-        
-            tokens1 = [w for w in tokens1 if w not in stopWords and w not in punctuation]
-            tokens2 = [w for w in tokens2 if w not in stopWords and w not in punctuation]
-
-            if len(tokens1) < min_seq_len or len(tokens2) < min_seq_len:
-                continue
-
-            mat = similarity_matrix(tokens1, tokens2, wordEmbed)
-            max_indices = np.argmax(mat, axis=1)
-
-            diff = 0
-            count = 0
-            for row_idx in range(mat.shape[0]):
-                diff += np.abs(row_idx - max_indices[row_idx])
-                count += 1
-
-            diff = float(diff) / (float(count) * float(count))
-            ratio = float(mat.shape[0]) / float(mat.shape[1])
-
-            if 0.75 < ratio < 1.5:
-                if diff > 0.35:
-                    output_file.write(line_split[0] + '\n')
-                    output_file.write(line_split[1] + '\n')
-                    total += 1
-
-    logger.info(total)
-    output_file.close()
 if __name__ == '__main__':
     args = parser.parse_args()
     create_paranmt(os.path.join(args.data_path, "para-nmt-50m.txt"), args.data_path, 0.8, 0.7, 10)

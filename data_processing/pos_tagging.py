@@ -25,10 +25,10 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser()
-parser.add_argument('--model-class', choices=['gpt2', 'gpt2-medium', 'tran_xl'], default='tran_xl')
-parser.add_argument("--input_data_file", type=str, default="./data/wikitext-103/wiki.test.tokens")
-parser.add_argument("--output_data_file", type=str, default="./data/wikitext-103/pos_tagged_test.txt")
-parser.add_argument("--tagger_dir", type=str, default="../en-pos-ontonotes-v0.5.pt")
+
+parser.add_argument("--input-data-file", type=str, default="./data/wikitext-103/wiki.test.tokens")
+parser.add_argument("--output-data-file", type=str, default="./data/wikitext-103/pos_tagged_test.txt")
+
 args = parser.parse_args()
 
 seed = 42
@@ -82,37 +82,6 @@ def pos_tag_by_core(read_file_name, write_dirty_name):
             logging.info("Finish tag {} lines.".format(idx))
     read_file.close()
     write_file.close()
-
-
-def pos_tag_by_flair(read_file_name, write_dirty_name):
-    from flair.models import SequenceTagger
-    from flair.data import Sentence
-    tagger = SequenceTagger.load(args.tagger_dir)
-    read_file = open(read_file_name, "r", encoding="utf-8")
-    write_file = open(write_dirty_name, "w", encoding="utf-8")
-    for idx, line in enumerate(read_file):
-        line_split = line.strip().split()
-        if len(line_split) != 0 and not is_caption(line_split):
-            sentence = Sentence(line)
-            tagger.predict(sentence)
-            token_pos_list = sentence.to_tagged_string().split(' ')
-            # print(token_pos_list)
-            assert len(token_pos_list) % 2 == 0
-            for token_idx in range(0, len(token_pos_list), 2):
-                token = token_pos_list[token_idx]
-                pos = token_pos_list[token_idx + 1]
-                if pos2word.get(pos) == None:
-                    pos2word[pos] = set()
-                pos2word[pos].add(token)
-
-        # write_file.write(" ".join([item.split(">")[0] for item in sentence.to_tagged_string().split("<")[1:]]) + '\n')
-        write_file.write(" ".join(token_pos_list) + '\n')
-        if idx % 1000 == 0:
-            logging.info("Finish tag {} lines.".format(idx))
-  
-    read_file.close()
-    write_file.close()
-
 
 def main():
   

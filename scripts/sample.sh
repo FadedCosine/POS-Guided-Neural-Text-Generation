@@ -7,7 +7,7 @@ Mode=UL
 Data=paraNMT
 for P in 0.8 0.9 0.7 0.6 0.5 0.4 0.3
 do
-    CUDA_VISIBLE_DEVICES=2 python lm_sample.py \
+    CUDA_VISIBLE_DEVICES=2 python sample.py \
         --saved-path data/checkpoint/$Data/_$Mode''_layer_6_lr_0.0001_cutoffs_17_core_epoch_4 \
         --dataset $Data \
         --loss-type $Mode \

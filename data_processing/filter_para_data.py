@@ -78,8 +78,8 @@ def len_distribution(filename):
     print("中位数: ", sorted(len_list)[int(len(len_list)/2)]) #35
     
 
-def create_paranmt(read_filename, write_path, high=1, low=0, min_seq_len=10, sampler_num=None):
-    nlp = StanfordCoreNLP(r'/data/zhaozx/stanford-corenlp/stanford-corenlp-full-2018-10-05', lang='en')
+def create_paranmt(read_filename, write_path, corenlp_path, high=1, low=0, min_seq_len=10, sampler_num=None):
+    nlp = StanfordCoreNLP(corenlp_path, lang='en')
     data = []
     with open(read_filename, 'r') as f:
         cnt = 0

@@ -182,7 +182,7 @@ def prepare_dataset_with_flair(args, data_path, tokenizer, pos_tokenizer):
     with open(os.path.join(data_path,'flair_{size}_token_in_pos_id.pkl'.format(size=args.vocab_size)), "wb") as writer:
         pickle.dump(token_in_pos_id, writer)
 
-def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset="wiki103", filter_bad_items=True, unk_rate=0.3, min_encode_len=10, max_encode_len=64):
+def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset="wikitext-103", filter_bad_items=True, unk_rate=0.3, min_encode_len=10, max_encode_len=64):
     """使用standford core nlp标注的dirty，和由词表构建的tokenizer，来把token和pos转换成token_id和pos_id，并构建pos2word
 
     Args:
@@ -192,7 +192,8 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
     # meaningful_vocab_size包括了原本的pos和eos
     pos2word = [set() for i in range(pos_tokenizer.meaningful_vocab_size)]
     # POS为 EOS的token list当中只有token为EOS这一个token
-    pos2word[pos_tokenizer.eos_id].add(tokenizer.eos_id)
+    if dataset == "paraNMT":
+        pos2word[pos_tokenizer.eos_id].add(tokenizer.eos_id)
     # tokenizer.vocab_size 包括了 unk 和 pad，如果filter_bad_items为True，则还包括了bos和eos
     token_in_pos_id = np.zeros((pos_tokenizer.meaningful_vocab_size, tokenizer.vocab_size), dtype=np.int32)
 
@@ -220,7 +221,7 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
                 token_id = tokenizer.convert_word_to_id(token)
                 token_counter[token_id] += 1
                 pos_id = pos_tokenizer.convert_tag_to_id(pos)
-                if dataset == "wiki103":
+                if dataset == "wikitext-103":
                     all_token_list.append(token_id)
                     all_pos_list.append(pos_id)
                 elif dataset == "paraNMT":
@@ -328,7 +329,7 @@ if __name__ == '__main__':
         build_vocab(args, data_path)
  
     logger.info("require vocab size is {}".format(args.vocab_size))
-    if args.dataset == "wiki103":
+    if args.dataset == "wikitext-103":
         add_special_token= False
     elif args.dataset == "paraNMT":
         add_special_token = True

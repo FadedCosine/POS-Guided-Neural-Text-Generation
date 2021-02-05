@@ -2,9 +2,9 @@ from model.transformer_gpt2 import *
 from model.transformer import Transformer
 from util.batch_generator import *
 from util.files import *
-from util.trainer import EMNLPTrainer
+from util.trainer import ExperTrainer
 import os
-from util.args import EMNLPArgument
+from util.args import Argument
 from util.losses import *
 import torch
 import apex
@@ -22,7 +22,7 @@ def get_model(args):
     with open(args.token_in_pos_id_path,'rb') as reader:
         token_in_pos_id = torch.from_numpy(pickle.load(reader)).to(args.device)
     logger.info("vocab_size is {}, padding id is {}".format(args.token_tokenizer.vocab_size, args.token_tokenizer.padding_id))
-    if args.dataset == "wiki103":
+    if args.dataset == "wikitext-103":
         model = Transformer_Decoder(args.token_tokenizer.vocab_size, args.batch_seqlen, args.hidden_dim, args.projection_dim, args.n_heads,
                                 args.head_dim, args.n_layers, args.cutoffs, args.dropout_rate, args.dropatt_rate,
                                 args.token_tokenizer.padding_id, rel_att=args.relative_pos, experimental_loss=args.experimental_loss,
@@ -49,31 +49,26 @@ def get_batchfier(args):
                                            padding_index=args.token_tokenizer.padding_id, epoch_shuffle=True)
         test_batchfier = Lyrics_Batchfier([args.test_path], args.batch_size, seq_len=args.batch_seqlen,
                                           padding_index=args.token_tokenizer.padding_id, epoch_shuffle=True)
-    elif args.dataset =='wiki103':
-        # if args.loss_type == "experimental3":
+    elif args.dataset =='wikitext-103':
         train_batchfier = BpttIteratorWithPOS(load_pkl(args.train_path), load_pkl(args.train_pos_path), args.batch_size, args.batch_seqlen, device=args.device)
         test_batchfier = BpttIteratorWithPOS(load_pkl(args.test_path), load_pkl(args.test_pos_path), args.batch_size, args.batch_seqlen, device=args.device)
-        # else:
-        #     train_batchfier = BpttIterator(load_pkl(args.train_path), args.batch_size, args.batch_seqlen, device=args.device)
-        #     test_batchfier = BpttIterator(load_pkl(args.test_path), args.batch_size, args.batch_seqlen, device=args.device)
+
     elif args.dataset =='paraNMT':
-        # if args.loss_type == "experimental3":
+
         train_batchfier = ParaIteratorWithPOS(load_pkl(args.train_path), load_pkl(args.train_pos_path), args.batch_size, args.token_tokenizer, max_seq_len=args.batch_seqlen, device=args.device)
         test_batchfier = ParaIteratorWithPOS(load_pkl(args.test_path), load_pkl(args.test_pos_path), args.batch_size, args.token_tokenizer, max_seq_len=args.batch_seqlen, device=args.device)
-        # else:
-        #     train_batchfier = ParaIterator(load_pkl(args.train_path), args.batch_size, args.batch_seqlen, device=args.device)
-        #     test_batchfier = ParaIterator(load_pkl(args.test_path), args.batch_size, args.batch_seqlen, device=args.device)
+
     return train_batchfier, test_batchfier
 
 def get_loss(args):
     lt = args.loss_type
-    if lt in ('experimental', 'experimental2', 'experimental3'):
+    if lt in ('F2v1', 'F2v2', 'POS'):
         loss = FactorizedLoss(args.token_tokenizer.padding_id) # F2-softmax loss
-    elif lt == 'plain':
+    elif lt == 'MLE':
         loss = PlainLoss(args.token_tokenizer.padding_id) # MLE loss
-    elif lt == 'unlikelihood-token':
+    elif lt == 'UL':
         loss = CandidateLoss(rank_alpha=1.0, padding_idx=args.token_tokenizer.padding_id) # unlikelihood token loss
-    elif lt == 'face':
+    elif lt == 'FACE':
         loss = FACELoss(padding_idx=args.token_tokenizer.padding_id,vocab_size=args.token_tokenizer.vocab_size,ignore_freq_index=[args.token_tokenizer.padding_id],ft="out",wt="pre")
         # if loss.ft=="out" and args.train_phase=="train":
         #     raise NotImplementedError("ft-out only can be used in fine-tune phase")
@@ -107,12 +102,12 @@ def get_trainer(args, model, train_batchfier, test_batchfier):
     decay_step = train_batchfier.len() * args.n_epoch
     scheduler = WarmupLinearSchedule(optimizer, args.warmup_step, decay_step)
     criteria = get_loss(args)
-    trainer = EMNLPTrainer(model, train_batchfier, test_batchfier, optimizer, scheduler, args.update_step, criteria,
+    trainer = ExperTrainer(model, train_batchfier, test_batchfier, optimizer, scheduler, args.update_step, criteria,
                       args.clip_norm, args.mixed_precision, args.dataset)
     return trainer
 
 if __name__ == '__main__':
-    args = EMNLPArgument()
+    args = Argument()
  
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:

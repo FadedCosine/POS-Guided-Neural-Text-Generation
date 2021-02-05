@@ -93,7 +93,7 @@ class Trainer:
                 continue
             logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
-            if self.dataset == "wiki103":
+            if self.dataset == "wikitext-103":
                 tgt = y
             elif self.dataset == "paraNMT":
                 tgt = y[..., 1:]
@@ -160,7 +160,7 @@ class Trainer:
                     continue
                 logits, _ = model(x, x_l, y, y_l, y_pos)
                 # print(logits)
-                if self.dataset == "wiki103":
+                if self.dataset == "wikitext-103":
                     tgt = y
                 elif self.dataset == "paraNMT":
                     tgt = y[..., 1:]
@@ -186,10 +186,10 @@ class Trainer:
         return math.exp(step_loss / pbar_cnt)
 
 
-class EMNLPTrainer(Trainer):
+class ExperTrainer(Trainer):
     def __init__(self, model, train_batchfier, test_batchfier, optimizers, schedulers,
                  update_step, criteria, clip_norm, mixed_precision, dataset):
-        super(EMNLPTrainer,self).__init__(model, train_batchfier, test_batchfier, optimizers, schedulers,
+        super(ExperTrainer,self).__init__(model, train_batchfier, test_batchfier, optimizers, schedulers,
                  update_step, criteria, clip_norm, mixed_precision, dataset)
     
 
@@ -241,7 +241,7 @@ class EMNLPTrainer(Trainer):
                 continue
             logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
-            if self.dataset == "wiki103":
+            if self.dataset == "wikitext-103":
                 tgt = y
             elif self.dataset == "paraNMT":
                 tgt = y[..., 1:]
@@ -312,7 +312,7 @@ class EMNLPTrainer(Trainer):
                 continue
             logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
-            if self.dataset == "wiki103":
+            if self.dataset == "wikitext-103":
                 tgt = y
             elif self.dataset == "paraNMT":
                 tgt = y[..., 1:]
@@ -453,7 +453,7 @@ class Evaluater:
                     continue
                 logits, _ = model(x, x_l, y, y_l, y_pos)
                 # print(logits)
-                if self.dataset == "wiki103":
+                if self.dataset == "wikitext-103":
                     tgt = y
                 elif self.dataset == "paraNMT":
                     tgt = y[..., 1:]

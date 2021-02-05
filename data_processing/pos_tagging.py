@@ -37,9 +37,6 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 
-model_path = {"gpt2":'/data/zhaozx/PosSampling/gpt2_model',
-        "tran_xl":'/data/zhaozx/PosSampling/transformer-xl',
-        }
 subword_models = ["gpt2-medium", "gpt2"]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
@@ -119,15 +116,6 @@ def pos_tag_by_flair(read_file_name, write_dirty_name):
 
 def main():
   
-    # MODEL_CLASSES = {
-    # "gpt2": GPT2Tokenizer,
-    # "tran_xl": TransfoXLTokenizer,
-    # }
-    
-    # tokenizer_class = MODEL_CLASSES[args.model_class]
-    # tokenizer = tokenizer_class.from_pretrained(model_path[args.model_class])
-    # pos_tag_by_flair(args.input_data_file, args.output_data_file, tokenizer, args.output_data_dir + args.model_class + "_valid_flair.pos",)
-    
     logging.info("tagging data")
     pos_tag_by_core(args.input_data_file, args.output_data_file)
 

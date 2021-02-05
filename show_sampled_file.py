@@ -16,7 +16,7 @@ def get_parser():
         )
     parser.add_argument(
             "--sample_filename",
-            type=str, default="experimental3_mode-3-pos-topp-0.0-topk-20"
+            type=str, default="POS_mode-3-pos-topp-0.0-topk-20"
         )
     return parser.parse_args()
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     enc_file_name = args.sample_filename
     df = pd.read_pickle(os.path.join(sampled_file_path, enc_file_name))
-    if args.dataset == "wiki103":
+    if args.dataset == "wikitext-103":
         add_special_token= False
     elif args.dataset == "paraNMT":
         add_special_token = True

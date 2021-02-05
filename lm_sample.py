@@ -2,9 +2,9 @@ from model.transformer_gpt2 import *
 from model.transformer import *
 from util.batch_generator import *
 from util.files import *
-from util.trainer import EMNLPTrainer
+from util.trainer import ExperTrainer
 import os
-from util.args import EMNLPArgument
+from util.args import Argument
 import apex
 from pytorch_transformers import WarmupLinearSchedule
 from util.sampling import *
@@ -23,7 +23,7 @@ def get_model(args):
     with open(args.token_in_pos_id_path,'rb') as reader:
         token_in_pos_id = torch.from_numpy(pickle.load(reader)).to(args.device)
     logger.info("vocab_size is {}, padding id is {}".format(args.token_tokenizer.vocab_size, args.token_tokenizer.padding_id))
-    if args.dataset == "wiki103":
+    if args.dataset == "wikitext-103":
         model = Transformer_Decoder(args.vocab_size, args.batch_seqlen, args.hidden_dim, args.projection_dim, args.n_heads,
                              args.head_dim, args.n_layers, args.cutoffs, args.dropout_rate, args.dropatt_rate,
                              args.token_tokenizer.padding_id, rel_att=args.relative_pos,experimental_loss=args.experimental_loss,
@@ -46,7 +46,7 @@ def get_batchfier(args):
     if args.dataset == 'bugs':
         test_batchfier = LyricsSampleBatchfier([args.test_path], args.batch_size*32,
                               10000, args.nprefix, args.ngenerate, device=args.device)
-    elif args.dataset == 'wiki103':
+    elif args.dataset == 'wikitext-103':
         test_batchfier = BpttSamplingIterator(load_pkl(args.test_path), args.batch_size*32,
                                       args.nprefix, args.ngenerate, device=args.device)
     elif args.dataset =='paraNMT':
@@ -153,7 +153,7 @@ def generate_seq2seq_sample(args, model, batchfier, max_decoding_len=64):
     return pd.DataFrame({'prefix':prefixs, 'decoded_predict':generated,'decoded_true':truths})
 
 if __name__ == '__main__':
-    args = EMNLPArgument(is_train=False)
+    args = Argument(is_train=False)
     logger.info('learning_rate {}, experimental : {} cutoffs len : {}'.format(args.learning_rate, 
         args.experimental_loss, len(args.cutoffs)))
     logger.info("cutoffs is {}".format(args.cutoffs))
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.dirname(args.sampled_savepath)):
         os.makedirs(os.path.dirname(args.sampled_savepath))
     logger.info("Start to generate sentence")
-    if args.dataset == "wiki103":
+    if args.dataset == "wikitext-103":
         df = generate_LM_sample(args,model,test_batchfier)
     elif args.dataset == "paraNMT":
         df = generate_seq2seq_sample(args, model,test_batchfier)

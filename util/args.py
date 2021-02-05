@@ -10,9 +10,9 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 logging.getLogger().setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class EMNLPArgument:
+class Argument:
     def __init__(self, path='config', is_train=True):
-        self.acc_to_full = {'wiki103':'wikitext-103', 'wiki2': 'wikitext-2', 'ptb': 'penn-treebank', 'bugs':'bugs', 'paraNMT':'paraNMT'}
+        
         training_path = os.path.join(path, 'training.yaml')
         model_data = os.path.join(path,'model.yaml')
         data = {}
@@ -23,11 +23,8 @@ class EMNLPArgument:
         args = self.get_args(is_test=not is_train)
 
 
-        if args.dataset =='bugs':
-            args.encoder_class="FP"
-            data.update(model_data['bugs'])
-        elif args.dataset =='wiki103':
-            args.encoder_class = "SPBPE"
+       
+        if args.dataset =='wikitext-103':
             data.update(model_data['wiki'])
         elif args.dataset =='paraNMT':
             data.update(model_data['paraNMT'])
@@ -38,7 +35,7 @@ class EMNLPArgument:
 
     def get_args(self, is_test=False):
         parser = argparse.ArgumentParser()
-        parser.add_argument("--dataset", type=str, default=r"wiki103",
+        parser.add_argument("--dataset", type=str, default="wikitext-103",
                             help='dataset_name')
         # parser.add_argument("--task", type=str, default="LM", choices=["LM", "seq2seq"],
         #                     help='task_name')
@@ -50,9 +47,7 @@ class EMNLPArgument:
         parser.add_argument("--n-cutoffs", type=int)
         parser.add_argument("--division", type=str, default='efficiency')
         parser.add_argument("--tagger", type=str, default='core')
-        parser.add_argument("--loss-type", help="choice [ plain, face, unlikelihood-token,"
-                                                " unlikelihood-token-seq_2,"
-                                                "experimental, experimental2]",
+        parser.add_argument("--loss-type", help="choice [ MLE, FACE, UL, F2v1, F2v2, POS]",
                             required=True, type=str)
         parser.add_argument("--model-checkpoint", help="transfer for finetuning model",default="", type=str)
         parser.add_argument("--finetune",action="store_true")
@@ -77,16 +72,16 @@ class EMNLPArgument:
 
     def load_files(self, data):
         
-        if data['loss_type'] == 'experimental':
+        if data['loss_type'] == 'F2v1':
             data['experimental_loss'] = 1
-        elif data['loss_type'] == 'experimental2':
+        elif data['loss_type'] == 'F2v2':
             data['experimental_loss'] = 2
-        elif data['loss_type'] == 'experimental3':
+        elif data['loss_type'] == 'POS':
             data['experimental_loss'] = 3
         else:
             data['experimental_loss'] = False
         
-        if data['dataset'] == "wiki103":
+        if data['dataset'] == "wikitext-103":
             data['add_special_token'] = False
         elif data['dataset'] == "paraNMT":
             data['add_special_token'] = True

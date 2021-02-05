@@ -3,10 +3,10 @@
 export PYTHONPATH="${PYTHONPATH}:../"
 echo $PYTHONPATH
 
-Mode=plain
-Data=wiki103
+Mode=MLE
+Data=paraNMT
 
-for P in 0.3 0.4 0.5 0.6 0.7 0.8 0.9
+for P in 0.8
 do
     CUDA_VISIBLE_DEVICES=4 python eval_seq2seq_metric.py \
         --dataset $Data \

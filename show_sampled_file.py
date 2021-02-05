@@ -38,13 +38,14 @@ if __name__ == '__main__':
         add_special_token = True
     token_tokenizer = tokenizer.TokenTokenizer(token_vocab_path, args.vocab_size, add_special_token=add_special_token)
     pos_tokenizer = tokenizer.POSTokenizer(pos_vocab_path, add_special_token=add_special_token)
-    outfile = open(os.path.join(sampled_file_path, enc_file_name + ".json"), "w")
+    hyp_outfile = open(os.path.join(sampled_file_path, enc_file_name + "_hyp.txt"), "w")
+    src_outfile = open(os.path.join(sampled_file_path, enc_file_name + "_src.txt"), "w")
+    tgt_outfile = open(os.path.join(sampled_file_path, enc_file_name + "_tgt.txt"), "w")
     for prefix, decoded_predict, decoded_true in zip(df["prefix"], df["decoded_predict"], df["decoded_true"]):
-        o = {}
-        o["prefix"] = " ".join(token_tokenizer.convert_ids_to_words(prefix))
-        print("decoded_predict is ", decoded_predict)
-        o["decoded_predict"] = " ".join(token_tokenizer.convert_ids_to_words(decoded_predict))
-        o["decoded_true"] = " ".join(token_tokenizer.convert_ids_to_words(decoded_true))
-        print(json.dumps(o), file=outfile, flush=True)
+      
+        src_outfile.write(" ".join(token_tokenizer.convert_ids_to_words(prefix))+"\n")
+        hyp_outfile.write(" ".join(token_tokenizer.convert_ids_to_words(decoded_predict))+"\n")
+        tgt_outfile.write(" ".join(token_tokenizer.convert_ids_to_words(decoded_true))+"\n")
+  
  
 

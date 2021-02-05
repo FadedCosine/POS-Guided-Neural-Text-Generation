@@ -36,8 +36,10 @@ cd ../POS-Guided-Neural-Text-Generation
 
 
 ### Data preprocess
+First, [download wikitext-103](https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip) to `data/wikitext-103` and [ParaNMT-50M](https://drive.google.com/file/d/1rbF3daJjCsa1-fu2GANeJd2FBXos1ugD/view) to `data/paraNMT` .
 
-First, download the Stanford [CoreNLP](http://nlp.stanford.edu/software/stanford-corenlp-full-2018-02-27.zip). And start a local Stanford CoreNLP Server.
+
+Next, download the Stanford [CoreNLP](http://nlp.stanford.edu/software/stanford-corenlp-full-2018-02-27.zip). And start a local Stanford CoreNLP Server.
 ```java
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9876 -timeout 15000
 ```
@@ -139,7 +141,7 @@ do
       --saved-path data/checkpoint/$Data/_$Mode''_layer_6_lr_0.0001_cutoffs_17_core_epoch_8 \
       --dataset $Data \
       --loss-type $Mode \
-      --top-p 0.3 \ 
+      --top-p $P \ 
       --pos-top-p ... \ # specify a sampling hyper-parameter for POS's nucleus sampling
       --pos-top-k ... \ # specify a sampling hyper-parameter for POS's top-k sampling. Note that only one of --pos-top-p or --pos-top-k should be specified.
       --sampling-mode 3 \

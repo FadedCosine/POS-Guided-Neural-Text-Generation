@@ -109,7 +109,7 @@ Please set P (nucleus sampling for token sampling) in loop.
 
 echo $PYTHONPATH
 
-Mode=MLE
+Mode=UL
 Data=wikitext-103
 for P in 0.8 0.9 0.7 0.6 0.5 0.4 0.3
 do
@@ -118,7 +118,7 @@ do
         --dataset $Data \
         --loss-type $Mode \ 
         --top-p $K \
-        --sampling-mode 1 \
+        --sampling-mode 2 \
         --root ./data \
         --nprefix 50 \  # for paraphrase generation, no need to specify this argument
         --ngenerate 100 ; # for paraphrase generation, no need to specify this argument

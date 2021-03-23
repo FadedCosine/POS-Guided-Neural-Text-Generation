@@ -180,7 +180,7 @@ class Trainer:
                     continue
                 if self.is_rnn_model:
                     hidden = repackage_hidden(hidden)
-                    logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+                    logits, hidden = model(x, y, hidden, dec_output_POS=y_pos)
                 else:
                     logits, _ = model(x, x_l, y, y_l, y_pos)
                 # print(logits)

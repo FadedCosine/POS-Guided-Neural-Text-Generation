@@ -124,6 +124,7 @@ def get_mem(model,inp):
 
 @torch.no_grad()
 def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10):
+    model.eval()
     top_whatever = top_k_logits if isinstance(top_w, int) else top_p_logits
     probs = None
     istuple = True if isinstance(inp, tuple) else False
@@ -132,10 +133,16 @@ def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, samp
     res = inp
     # res = torch.LongTensor([]).to(inp.device)
     cnt = 0
+    is_rnn_model = hasattr(model, 'model_type') and model.model_type == 'RNN'
+    if is_rnn_model:
+        bs, l = inp.size()
+        hidden = model.init_hidden(bs)
+        # output, hidden = model(inp, hidden)
     for _ in range(lengths):
         cnt+=1
    
         with torch.no_grad():
+
             if istuple:
                 bs, l, inp = divided_input(inp)
             else:

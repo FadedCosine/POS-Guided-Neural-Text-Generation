@@ -1,29 +1,35 @@
 bugs:
   batch_seqlen: 512
+  embedding_dim: 300
   hidden_dim: 512
   projection_dim: 2048
   n_heads: 8
   head_dim: 64
   n_layers: 12
+  rnn_layer: 4
   dropout_rate: 0.1
   dropatt_rate: 0.0
 
 wiki:
   batch_seqlen: 1024
+  embedding_dim: 200
   hidden_dim: 512
   projection_dim: 2048
   n_heads: 8
   head_dim: 64
   n_layers: 12
+  rnn_layer: 4
   dropout_rate: 0.1
   dropatt_rate: 0.0
 
 paraNMT:
   batch_seqlen: 384
+  embedding_dim: 200
   hidden_dim: 512
   projection_dim: 2048
   n_heads: 8
   head_dim: 64
   n_layers: 6
+  rnn_layer: 2
   dropout_rate: 0.1
   dropatt_rate: 0.0

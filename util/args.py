@@ -42,7 +42,8 @@ class Argument:
         parser.add_argument("--root", type=str,
                             help='root directory')
         # parser.add_argument("--encoder-class",type=str,default='SPBPE')
-        parser.add_argument("--vocab-size", type=int, default=270000)
+        parser.add_argument("--rnn-type", type=str, default=None)
+        parser.add_argument("--vocab-size", type=int, default=200000)
         parser.add_argument('--seed', type=int, default=42)
         parser.add_argument("--n-cutoffs", type=int)
         parser.add_argument("--division", type=str, default='efficiency')

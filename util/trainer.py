@@ -12,6 +12,15 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 logging.getLogger().setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def repackage_hidden(h):
+    """Wraps hidden states in new Tensors, to detach them from their history."""
+
+    if isinstance(h, torch.Tensor):
+        return h.detach()
+    else:
+        return tuple(repackage_hidden(v) for v in h)
+
+
 class FactorizedCriteria:
     def __init__(self):
         pass
@@ -37,6 +46,7 @@ class Trainer:
     def __init__(self, model, train_batchfier, test_batchfier, optimizers, schedulers,
                  update_step, criteria, clip_norm, mixed_precision, dataset):
         self.model = model
+        self.is_rnn_model = hasattr(model, 'model_type') and model.model_type == 'RNN'
         self.train_batchfier = train_batchfier
         self.test_batchfier = test_batchfier
         self.optimizers = optimizers
@@ -86,12 +96,20 @@ class Trainer:
      
         model.zero_grad()
         test_d1_score=0
-        
+    
+        if self.is_rnn_model:
+            hidden = model.init_hidden(batchfier.size)
         for idx, inp in enumerate(batchfier):
             x, x_l, x_pos, y, y_l, y_pos = inp
             if 0 in x_l:
                 continue
-            logits, _ = model(x, x_l, y, y_l, y_pos)
+            
+            if self.is_rnn_model:
+                hidden = repackage_hidden(hidden)
+                
+                logits, hidden = model(x, y, hidden, dec_output_POS=y_pos)
+            else:
+                logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
             if self.dataset == "wikitext-103":
                 tgt = y
@@ -152,13 +170,19 @@ class Trainer:
         t_correct3 = 0
         t_total3 = 0
 
-
+        
+        if self.is_rnn_model:
+            hidden = model.init_hidden(batchfier.size)
         for inp in batchfier:
             with torch.no_grad():
                 x, x_l, x_pos, y, y_l, y_pos = inp
                 if 0 in x_l:
                     continue
-                logits, _ = model(x, x_l, y, y_l, y_pos)
+                if self.is_rnn_model:
+                    hidden = repackage_hidden(hidden)
+                    logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+                else:
+                    logits, _ = model(x, x_l, y, y_l, y_pos)
                 # print(logits)
                 if self.dataset == "wikitext-103":
                     tgt = y
@@ -234,12 +258,18 @@ class ExperTrainer(Trainer):
         pbar_cnt = 0
         model.zero_grad()
         test_d1_score=0
-
+        
+        if self.is_rnn_model:
+            hidden = model.init_hidden(batchfier.size)
         for inp in batchfier:
             x, x_l, x_pos, y, y_l, y_pos = inp
             if 0 in x_l:
                 continue
-            logits, _ = model(x, x_l, y, y_l, y_pos)
+            if self.is_rnn_model:
+                hidden = repackage_hidden(hidden)
+                logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+            else:
+                logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
             if self.dataset == "wikitext-103":
                 tgt = y
@@ -305,12 +335,17 @@ class ExperTrainer(Trainer):
         pbar = tqdm(100)
         pbar_cnt = 0
         model.zero_grad()
-
+        if self.is_rnn_model:
+            hidden = model.init_hidden(batchfier.size)
         for total_iter, inp in enumerate(batchfier):
             x, x_l, x_pos, y, y_l, y_pos = inp
             if 0 in x_l:
                 continue
-            logits, _ = model(x, x_l, y, y_l, y_pos)
+            if self.is_rnn_model:
+                hidden = repackage_hidden(hidden)
+                logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+            else:
+                logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
             if self.dataset == "wikitext-103":
                 tgt = y
@@ -366,6 +401,7 @@ class ExperTrainer(Trainer):
 class Evaluater:
     def __init__(self, model, batchfier, padding_idx, dateset, experimental=False):
         self.model = model
+        self.is_rnn_model = hasattr(model, 'model_type') and model.model_type == 'RNN'
         self.batchfier = batchfier
         self.padding_idx = padding_idx
         self.macro_criterion=nn.CrossEntropyLoss(ignore_index=self.padding_idx,reduction="none")
@@ -446,12 +482,18 @@ class Evaluater:
         step_loss = 0
         n_samples = 0
         t_correct = 0
+        if self.is_rnn_model:
+            hidden = model.init_hidden(batchfier.size)
         for inp in pbar:
             with torch.no_grad():
                 x, x_l, x_pos, y, y_l, y_pos = inp
                 if 0 in x_l:
                     continue
-                logits, _ = model(x, x_l, y, y_l, y_pos)
+                if self.is_rnn_model:
+                    hidden = repackage_hidden(hidden)
+                    logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+                else:
+                    logits, _ = model(x, x_l, y, y_l, y_pos)
                 # print(logits)
                 if self.dataset == "wikitext-103":
                     tgt = y

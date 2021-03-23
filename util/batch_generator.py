@@ -184,11 +184,10 @@ class BpttIteratorWithPOS:
         self.pos_data = self.prepair_dataset(pos_dataset)
 
     def prepair_dataset(self, text):
-        # 两行为一条数据，因为包含source sentence 和 target sentence
-        remainder= len(text) % (self.size * 2)
+        remainder= len(text) % self.size
         if remainder:
             text = text[:-remainder]
-        data = np.array(text).reshape((self.size * 2,-1))
+        data = np.array(text).reshape((self.size,-1))
         return data
 
     def __len__(self):

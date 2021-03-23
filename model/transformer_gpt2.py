@@ -295,7 +295,7 @@ class Transformer_Decoder(Transformer_Base):
     def __init__(self, vocab_size:int, seq_len:int, hidden_dim: int, projection_dim: int,
                  n_heads: int, head_dim: int, n_layers:int, cutoffs:list,
                  dropout_rate: float, dropatt_rate: float, padding_index : int,
-                 pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=False,
+                 pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=0,
                  pos2word=None, token_in_pos_id=None):
         super(Transformer_Decoder, self).__init__(vocab_size,seq_len,hidden_dim,projection_dim,n_heads,head_dim,
                                                 n_layers,dropout_rate,dropatt_rate,padding_index,pre_lnorm,
@@ -341,9 +341,9 @@ class Transformer_Decoder(Transformer_Base):
         """
         bs, qs = dec_input.size()
         out, mem = self.compute_hidden(dec_input, memory, dec_input_len)
-        # out： [batch , (seq_len - 1), hidden_dim]
+        # 这里依然是out = out[:, :-1]没有问题，主要是因为默认输入的x比target长一个token，所以在做sampling的时候使用gathered_input，手动为每个input的句子最后加上了一个0
         out = out[:, :-1]
-        # out： [batch * (seq_len - 1), hidden_dim]
+    
         out = out.contiguous().view(bs * (qs - 1), -1)
         if sampling_mode == 1:
             ishard = True 

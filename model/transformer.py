@@ -240,7 +240,7 @@ class Transformer(nn.Module):
     def __init__(self, vocab_size:int, seq_len:int, hidden_dim: int, projection_dim: int,
                  n_heads: int, head_dim: int, n_layers:int, cutoffs:list,
                  dropout_rate: float, dropatt_rate: float, padding_index : int,
-                 pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=False,
+                 pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=0,
                  pos2word=None, token_in_pos_id=None):
         super(Transformer, self).__init__()
         self.rel_att = rel_att # encoder与decoder是否使用相对位置编码应该是一致的 

@@ -10,4 +10,4 @@ CUDA_VISIBLE_DEVICES=0 python lm_ppl_eval.py \
     --dataset $Data \
     --loss-type $Mode \
     --root ./data \
-    --vocab-size 270000;
+    --vocab-size 200000;

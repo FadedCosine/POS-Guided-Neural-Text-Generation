@@ -71,7 +71,7 @@ Each Loss function is implemented in a single script:
 | MLE                                                         | script/train_mle.sh       | Basic |
 | [FACE](<https://arxiv.org/pdf/1902.09191.pdf>) | script/train_face.sh       | finetune:: need inital checkpoints from mle loss                                                              |
 | [UL](<https://arxiv.org/pdf/1908.04319.pdf>)| script/train_ul.sh     | |
-| [F2-Softmax](<https://arxiv.org/pdf/2009.09417.pdf>)  | script/train_f2_softmax.sh |  |
+| [F2-Softmax](<https://www.aclweb.org/anthology/2020.emnlp-main.737/>)  | script/train_f2_softmax.sh |  |
 | \*POS guided Softmax (ours) | script/train_pos_softmax.sh |  |
 
 
@@ -180,4 +180,4 @@ Besides, we also calculate the [BERTScore](https://github.com/Tiiiger/bert_score
 
 ## Credits
 
-The code in this repository and portions of this README are based on [F2-Softmax](<https://arxiv.org/pdf/2009.09417.pdf>) 
+The code in this repository and portions of this README are based on [F2-Softmax](<https://www.aclweb.org/anthology/2020.emnlp-main.737/>) 

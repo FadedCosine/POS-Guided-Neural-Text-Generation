@@ -355,6 +355,7 @@ class Transformer_Decoder(Transformer_Base):
             out = self.final.pos_sampling(out, top_w)
         else:
             out = self.final.soft_cluster_logit(out)
+        out = out.contiguous().view(bs,qs-1,-1)
         return out, mem
 
     def forward(self, dec_input, dec_input_len, dec_output, dec_output_len, dec_output_POS=None, memory=None):

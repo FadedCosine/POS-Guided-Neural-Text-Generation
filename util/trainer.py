@@ -218,7 +218,7 @@ class ExperTrainer(Trainer):
     
 
     def test_d1_epoch(self,args):
-        from sample import generate_seq2seq_sample
+        from sample import generate_seq2seq_sample, generate_LM_sample
         from util.evaluate import distinct_n_corpus_level
 
         model = self.model
@@ -230,7 +230,10 @@ class ExperTrainer(Trainer):
         #                            shuffle=False,
         #                            collate_fn=batchfier.collate, )
         model.eval()
-        df=generate_seq2seq_sample(args,model,batchfier)
+        if self.dataset == "wikitext-103":
+            df=generate_LM_sample(args,model,batchfier)
+        elif self.dataset == "paraNMT":
+            df=generate_seq2seq_sample(args,model,batchfier)
         d_1_score=distinct_n_corpus_level(df["decoded_predict"],1)
 
         return d_1_score
@@ -252,22 +255,23 @@ class ExperTrainer(Trainer):
                                    shuffle=False,
                                    collate_fn=batchfier.collate, )
 
-        model.train()
+        
         tot_loss, step_loss, tot_cnt, n_bar, acc = 0, 0, 0, 0, 0
         pbar = tqdm(100)
         pbar_cnt = 0
         model.zero_grad()
         test_d1_score=0
-        
+
         if self.is_rnn_model:
             hidden = model.init_hidden(batchfier.size)
         for inp in batchfier:
+            model.train()
             x, x_l, x_pos, y, y_l, y_pos = inp
             if 0 in x_l:
                 continue
             if self.is_rnn_model:
                 hidden = repackage_hidden(hidden)
-                logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+                logits, hidden = model(x, y, hidden, dec_output_POS=y_pos)
             else:
                 logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
@@ -343,7 +347,7 @@ class ExperTrainer(Trainer):
                 continue
             if self.is_rnn_model:
                 hidden = repackage_hidden(hidden)
-                logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
+                logits, hidden = model(x, y, hidden, dec_output_POS=y_pos)
             else:
                 logits, _ = model(x, x_l, y, y_l, y_pos)
             # print(logits)
@@ -489,22 +493,27 @@ class Evaluater:
                 x, x_l, x_pos, y, y_l, y_pos = inp
                 if 0 in x_l:
                     continue
-                if self.is_rnn_model:
-                    hidden = repackage_hidden(hidden)
-                    logits, hidden = model(x, y, hidden, dec_output_pos=y_pos)
-                else:
-                    logits, _ = model(x, x_l, y, y_l, y_pos)
+                
                 # print(logits)
+                bs, qs = x.size()
                 if self.dataset == "wikitext-103":
                     tgt = y
                 elif self.dataset == "paraNMT":
                     tgt = y[..., 1:]
-            
-                if self.experimental:
-                    logits, _ = model.sampling(x, x_l, None, 0, 1)
+                if self.is_rnn_model:
+                    hidden = repackage_hidden(hidden)
+                    logits, hidden = model.sampling(x, hidden, 0, None)
+                    logits = logits[:, :-1, :]
+                    # print("logits size is ", logits.size())
+                    
                 else:
-                    logits, _ = model(x, x_l, y, y_l, y_pos)
+                    if self.experimental:
+                        logits, _ = model.sampling(x, x_l, None, 0, 1)
+                    else:
+                        logits, _ = model(x, x_l, y, y_l, y_pos)
+                logits = logits.contiguous().view(bs * (qs - 1), -1)
                 y = tgt.contiguous().view(-1)
+                # print("y size is ", y.size())
                 losses = self.criterion(logits, y)
                 n_samples+= (tgt != self.padding_idx).sum().item()
                 t_correct += self.acc(logits, y)

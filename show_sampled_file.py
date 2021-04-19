@@ -12,7 +12,7 @@ def get_parser():
     parser.add_argument("--dataset", type=str, default="paraNMT")
     parser.add_argument(
             "--topw_dir",
-            type=str, default="topp-0.0-topk-3-temp-1"
+            type=str, default="topp-0.5-topk-0-temp-1"
         )
     parser.add_argument(
             "--sample_filename",

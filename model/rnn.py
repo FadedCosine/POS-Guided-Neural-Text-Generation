@@ -65,15 +65,23 @@ class RNNModel(nn.Module):
         else:
             return weight.new_zeros(self.nlayers, bsz, self.hidden_dim)
 
+    def get_hidden(self, dec_input, hidden):
+        bs, qs = dec_input.size()
+        emb = self.drop(self.word_embedding(dec_input))
+        _, hidden = self.rnn(emb, hidden)
+        return hidden
+
     def forward(self, dec_input, dec_output, hidden, dec_output_POS=None):
         bs, qs = dec_input.size()
         emb = self.drop(self.word_embedding(dec_input))
    
         out, hidden = self.rnn(emb, hidden)
         out = self.drop(out)
-        
+       
         out = out[:,:-1]
         out = out.contiguous().view(bs*(qs-1),-1)
+ 
+
         if self.experimental_loss in [1, 2]:
             dec_output = dec_output.contiguous().view(-1)
             final = self.final(out,dec_output)
@@ -84,18 +92,16 @@ class RNNModel(nn.Module):
         else:
             final = self.final(out)
         return final, hidden
-    
-    
+
     def sampling(self, dec_input, hidden, sampling_mode, top_w):
-        """
-            sampling when the model is trained with experimental loss
-        """
         bs, qs = dec_input.size()
-        out, mem = self.compute_hidden(dec_input, memory, dec_input_len)
-        # out： [batch , (seq_len - 1), hidden_dim]
-        out = out[:, :-1]
-        # out： [batch * (seq_len - 1), hidden_dim]
-        out = out.contiguous().view(bs * (qs - 1), -1)
+        emb = self.drop(self.word_embedding(dec_input))
+   
+        out, hidden = self.rnn(emb, hidden)
+        out = self.drop(out)
+        
+        # out = out[:,-1]
+        out = out.contiguous().view(bs * qs,-1)
         if sampling_mode == 1:
             ishard = True 
             out = self.final.hard_cluster_logit(out, top_w, ishard)
@@ -104,6 +110,10 @@ class RNNModel(nn.Module):
             out = self.final.hard_cluster_logit(out, top_w, ishard)
         elif sampling_mode == 3:
             out = self.final.pos_sampling(out, top_w)
-        else:
+        elif sampling_mode == 0 and self.experimental_loss != 0:
             out = self.final.soft_cluster_logit(out)
-        return out, mem
+        elif sampling_mode == 0 and self.experimental_loss == 0:
+            out = self.final(out)
+        out = out.contiguous().view(bs, qs, -1)
+        return out, hidden
+       

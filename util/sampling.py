@@ -98,16 +98,6 @@ def gathered_input(indexed):
     return bs, l, (indexed,lens)
 
 
-def divided_input(indexed):
-    device = indexed[0].device
-    title, content, title_len, context_len = indexed
-    bs, tl = title.size()
-    content = content[:,-1:]
-    _, cl = content.size()
-    cls = torch.LongTensor([2] * bs).to(device)
-    cind = torch.cat([content, torch.LongTensor([0] * bs)[:, None].to(device)], 1)
-    return bs, cl, (title, cind, title_len, cls)
-
 def get_mem(model,inp):
     istuple = True if isinstance(inp, tuple) else False
     with torch.no_grad():
@@ -127,38 +117,46 @@ def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, samp
     model.eval()
     top_whatever = top_k_logits if isinstance(top_w, int) else top_p_logits
     probs = None
-    istuple = True if isinstance(inp, tuple) else False
-    mem, inp = get_mem(model, inp)
-    mem=[m.to(torch.float) for m in mem]
     res = inp
     # res = torch.LongTensor([]).to(inp.device)
     cnt = 0
     is_rnn_model = hasattr(model, 'model_type') and model.model_type == 'RNN'
     if is_rnn_model:
-        bs, l = inp.size()
+        bs, _ = inp.size()
         hidden = model.init_hidden(bs)
+        # hidden = model.get_hidden(inp[:, :-1], hidden)
         # output, hidden = model(inp, hidden)
+    else:
+        mem, inp = get_mem(model, inp)
+        mem=[m.to(torch.float) for m in mem]
     for _ in range(lengths):
         cnt+=1
    
         with torch.no_grad():
-
-            if istuple:
-                bs, l, inp = divided_input(inp)
+            if is_rnn_model:
+                
+                if experimental_loss == 1 or experimental_loss == 2 :
+                    logits, hidden = model.sampling(inp, hidden, sampling_mode, top_w)
+                elif experimental_loss == 3:
+                    logits, hidden = model.sampling(inp, hidden, sampling_mode, pos_top_w)
+                else:
+                    logits, hidden = model.sampling(inp, hidden, sampling_mode, None)
+               
             else:
+                # l是加了一个0之前的batch中每个文本的长度
                 bs, l, inp = gathered_input(inp[:,-1:])
-            if experimental_loss == 1 or experimental_loss == 2 :
-                logits, new_mem = model.sampling(inp + (mem, sampling_mode, top_w))
-            elif experimental_loss == 3:
-                logits, new_mem = model.sampling(inp + (mem, sampling_mode, pos_top_w))
-            else:
-                logits, new_mem = model(inp + (None, mem))
-            # sampling输出的logits还不是最终的概率
-            # new_mem=[m.to(torch.float) for m in new_mem]
-            mem = [torch.cat([mem[i], new_mem[i][:,:-1]],1) for i in range(len(mem))]
-            logits = top_whatever(logits, top_w)
-            logits = logits.view(bs,l,-1)
+                dec_input, input_len = inp
+                if experimental_loss == 1 or experimental_loss == 2 :
+                    logits, new_mem = model.sampling(dec_input, input_len, mem, sampling_mode, top_w)
+                elif experimental_loss == 3:
+                    logits, new_mem = model.sampling(dec_input, input_len, mem, sampling_mode, pos_top_w)
+                else:
+                    logits, new_mem = model(dec_input, input_len, None, None, memory=mem)
+                # sampling输出的logits还不是最终的概率
+                # new_mem=[m.to(torch.float) for m in new_mem]
+                mem = [torch.cat([mem[i], new_mem[i][:,:-1]],1) for i in range(len(mem))]
             logits = logits[:,-1,:] / temparature
+            logits = top_whatever(logits, top_w)
             saved_logits = logits
             
             sampled = torch.multinomial(torch.softmax(logits,-1),1)
@@ -169,16 +167,9 @@ def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, samp
    
             probs = torch.cat([probs,temp_probs[torch.arange(len(sampled)),sampled.squeeze(1)][:,None]],1) \
                 if probs is not None else temp_probs[torch.arange(len(sampled)),sampled.squeeze(1)][:,None]
-            if istuple:
-                title, cind, tls, cls = inp
-                cind = sampled
-                inp = (title, cind,tls,cls)
-            else:
-                inp = sampled
-    if istuple:
-        return res.tolist(), probs.tolist()
-    else:
-        return res.tolist(), probs.tolist()
+            inp = sampled
+  
+    return res.tolist(), probs.tolist()
 
 @torch.no_grad()
 def seq2seq_sampling(model, max_decoding_len, tokenizer, inp, top_w, temparature, experimental_loss, sampling_mode=0, pos_top_w=10, sampling_num=1):

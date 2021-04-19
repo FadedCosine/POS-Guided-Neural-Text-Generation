@@ -95,7 +95,7 @@ def get_trainer(args, model, train_batchfier, test_batchfier):
         optimizer = torch.optim.AdamW(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
     # optimizer = torch.optim.AdamW(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
     if args.mixed_precision:
-        print('mixed_precision')
+        logger.info('mixed_precision')
         opt_level = 'O2'
         model, optimizer = apex.amp.initialize(model, optimizer, opt_level=opt_level)
     # multi-gpu training (should be after apex fp16 initialization)
@@ -144,12 +144,12 @@ if __name__ == '__main__':
     init_epoch = 0
     if args.model_checkpoint != "":
         init_epoch = int(args.model_checkpoint.split('_')[-1]) + 1
-    logger.info(init_epoch)
+    logger.info("init epoch : {}".format(init_epoch))
     if args.finetune:
         args.n_epoch=1
     
     for i in range(args.n_epoch):
-        print('epoch {}'.format(i + 1))
+        logger.info('epoch {}'.format(i + 1))
         if not args.finetune:
             trainer.train_epoch(args)
             test_loss=trainer.test_epoch()
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                 trainer.seq_level_finetune(args.savename,args)
                 test_loss = trainer.test_epoch()
                 res.append(test_loss)
-            if args.loss_type=="face":
+            if args.loss_type=="FACE":
                 args.nprefix = 50
                 args.ngenerate = 100
                 args.top_k = 1

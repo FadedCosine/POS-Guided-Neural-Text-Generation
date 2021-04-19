@@ -80,7 +80,7 @@ class Argument:
         elif data['loss_type'] == 'POS':
             data['experimental_loss'] = 3
         else:
-            data['experimental_loss'] = False
+            data['experimental_loss'] = 0
         
         if data['dataset'] == "wikitext-103":
             data['add_special_token'] = False

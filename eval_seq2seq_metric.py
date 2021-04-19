@@ -25,6 +25,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset',type=str)
     parser.add_argument('--folderpath',type=str)
+    parser.add_argument('--usage',type=str, default="temp-1")
     parser.add_argument('--top-p',type=float)
     parser.add_argument('--top-k',type=int)
     return parser.parse_args()
@@ -32,8 +33,8 @@ def get_args():
 
 def main():
     args = get_args()
-    folderpath = os.path.join(args.folderpath, "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k))
-    logger.info("=" * 20 + "topp-{p}-topk-{k}-temp-1".format(p=args.top_p, k=args.top_k) + "=" * 20)
+    folderpath = os.path.join(args.folderpath, "topp-{p}-topk-{k}-{usage}".format(p=args.top_p, k=args.top_k, usage=args.usage))
+    logger.info("=" * 20 + "topp-{p}-topk-{k}-{usage}".format(p=args.top_p, k=args.top_k, usage=args.usage) + "=" * 20)
     filenames = sorted(get_files(folderpath))
     sb = {}
     kd = {}

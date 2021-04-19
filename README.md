@@ -177,3 +177,7 @@ done
 ```
 
 Besides, we also calculate the [BERTScore](https://github.com/Tiiiger/bert_score) in paraphrase generation task.
+
+## Credits
+
+The code in this repository and portions of this README are based on [F2-Softmax](<https://arxiv.org/pdf/2009.09417.pdf>) 

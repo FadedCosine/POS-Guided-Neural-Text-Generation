@@ -7,7 +7,7 @@ from .softmax import *
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
 
-    def __init__(self, rnn_type: str, vocab_size:int, embedding_dim: int, hidden_dim: int, nlayers: int, cutoffs:list, padding_index: int, experimental_loss=0, dropout=0.5, tie_weights=False, pos2word=None, token_in_pos_id=None):
+    def __init__(self, rnn_type: str, vocab_size:int, embedding_dim: int, hidden_dim: int, nlayers: int, cutoffs:list, padding_index: int, experimental_loss=0, dropout=0.5, tie_weights=False, pos2word=None, token_in_pos_id=None, expert_dim=512, n_experts=15, ):
         super(RNNModel, self).__init__()
         self.model_type = 'RNN'
         self.vocab_size = vocab_size
@@ -32,6 +32,8 @@ class RNNModel(nn.Module):
             if pos2word is None or token_in_pos_id is None:
                 raise ValueError('pos2word or token_in_pos_id must be specified!')
             self.final = POS_Guided_Softmax(vocab_size, hidden_dim, pos2word, token_in_pos_id, padding_index)
+        elif experimental_loss == 4:
+            self.final = MixofSoftmax(vocab_size, hidden_dim, expert_dim, n_experts, padding_index)
         else:
             self.final = nn.Linear(hidden_dim, vocab_size, bias=False)
 

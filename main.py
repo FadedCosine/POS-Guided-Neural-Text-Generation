@@ -70,7 +70,7 @@ def get_batchfier(args):
 
 def get_loss(args):
     lt = args.loss_type
-    if lt in ('F2v1', 'F2v2', 'POS'):
+    if lt in ('F2v1', 'F2v2', 'POS', 'MoS'):
         loss = FactorizedLoss(args.token_tokenizer.padding_id) # F2-softmax loss
     elif lt == 'MLE':
         loss = PlainLoss(args.token_tokenizer.padding_id) # MLE loss

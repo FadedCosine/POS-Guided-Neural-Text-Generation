@@ -14,7 +14,7 @@ def get_files(path):
         # Directory
         for (dirpath, _, fnames) in os.walk(path):
             for fname in fnames:
-                if 'iternums' not in fname:
+                if 'iternums' not in fname and  'txt' not in fname:
                     paths.append(os.path.join(dirpath, fname))
     else:
         # Assume glob

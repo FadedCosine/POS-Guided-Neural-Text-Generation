@@ -11,7 +11,7 @@ bugs:
   dropatt_rate: 0.0
 
 wiki:
-  batch_seqlen: 1024
+  batch_seqlen: 256
   embedding_dim: 200
   hidden_dim: 512
   projection_dim: 2048

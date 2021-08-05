@@ -43,7 +43,7 @@ class Argument:
                             help='root directory')
         # parser.add_argument("--encoder-class",type=str,default='SPBPE')
         parser.add_argument("--rnn-type", type=str, default=None)
-        parser.add_argument("--vocab-size", type=int, default=200000)
+        parser.add_argument("--vocab-size", type=int, default=270000)
         parser.add_argument('--seed', type=int, default=42)
         parser.add_argument("--n-cutoffs", type=int)
         parser.add_argument("--division", type=str, default='efficiency')
@@ -79,6 +79,8 @@ class Argument:
             data['experimental_loss'] = 2
         elif data['loss_type'] == 'POS':
             data['experimental_loss'] = 3
+        elif data['loss_type'] == 'MoS':
+            data['experimental_loss'] = 4
         else:
             data['experimental_loss'] = 0
         

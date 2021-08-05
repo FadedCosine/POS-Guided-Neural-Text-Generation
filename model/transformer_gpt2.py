@@ -296,7 +296,7 @@ class Transformer_Decoder(Transformer_Base):
                  n_heads: int, head_dim: int, n_layers:int, cutoffs:list,
                  dropout_rate: float, dropatt_rate: float, padding_index : int,
                  pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=0,
-                 pos2word=None, token_in_pos_id=None):
+                 pos2word=None, token_in_pos_id=None, expert_dim=512, n_experts=15,):
         super(Transformer_Decoder, self).__init__(vocab_size,seq_len,hidden_dim,projection_dim,n_heads,head_dim,
                                                 n_layers,dropout_rate,dropatt_rate,padding_index,pre_lnorm,
                                                 same_lengths,rel_att,Transformer_Block)
@@ -309,6 +309,8 @@ class Transformer_Decoder(Transformer_Base):
             if pos2word is None or token_in_pos_id is None:
                 raise ValueError('pos2word or token_in_pos_id must be specified!')
             self.final = POS_Guided_Softmax(vocab_size, hidden_dim, pos2word, token_in_pos_id, padding_index)
+        elif experimental_loss == 4:
+            self.final = MixofSoftmax(vocab_size, hidden_dim, expert_dim, n_experts, padding_index)
         else:
             self.final = nn.Linear(hidden_dim, vocab_size, bias=False)
         # self.final = Adaptive_Softmax(vocab_size,hidden_dim,cutoffs,div_val)
@@ -364,7 +366,7 @@ class Transformer_Decoder(Transformer_Base):
         #取out[:,:-1]是因为batch_generator输入的x是完全的完全的句子，而y是x[:, 1:]
         out = out[:,:-1]
         out = out.contiguous().view(bs*(qs-1),-1)
-        if self.experimental_loss in [1, 2]:
+        if self.experimental_loss in [1, 2, 4]:
             dec_output = dec_output.contiguous().view(-1)
             final = self.final(out,dec_output)
         elif self.experimental_loss == 3:

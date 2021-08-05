@@ -241,7 +241,7 @@ class Transformer(nn.Module):
                  n_heads: int, head_dim: int, n_layers:int, cutoffs:list,
                  dropout_rate: float, dropatt_rate: float, padding_index : int,
                  pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=0,
-                 pos2word=None, token_in_pos_id=None):
+                 pos2word=None, token_in_pos_id=None, expert_dim=512, n_experts=15, ):
         super(Transformer, self).__init__()
         self.rel_att = rel_att # encoder与decoder是否使用相对位置编码应该是一致的 
         self.encoder = Transformer_Base(vocab_size, seq_len, hidden_dim, projection_dim, n_heads, 
@@ -260,6 +260,8 @@ class Transformer(nn.Module):
             if pos2word is None or token_in_pos_id is None:
                 raise ValueError('pos2word or token_in_pos_id must be specified!')
             self.final = POS_Guided_Softmax(vocab_size, hidden_dim, pos2word, token_in_pos_id, padding_index)
+        elif experimental_loss == 4:
+            self.final = MixofSoftmax(vocab_size, hidden_dim, expert_dim, n_experts, padding_index)
         else:
             self.final = nn.Linear(hidden_dim, vocab_size, bias=False)
     def compute_enc_context(self, enc_input, enc_input_lens):

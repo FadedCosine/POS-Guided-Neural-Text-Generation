@@ -92,8 +92,6 @@ class Trainer:
 
         model.train()
         tot_loss, step_loss, tot_cnt, n_bar, acc = 0, 0, 0, 0, 0
-       
-     
         model.zero_grad()
         test_d1_score=0
     

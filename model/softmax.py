@@ -405,6 +405,51 @@ class POS_Guided_Softmax(nn.Module):
         return nll
 
 
+class MixofSoftmax(nn.Module):
+    def __init__(self, vocab_size:int, hidden_dim:int, expert_dim:int, n_experts:int, padding_index:int):
+        super(MixofSoftmax, self).__init__()
+        self.padding_index = padding_index
+        self.latent = nn.Sequential(nn.Linear(hidden_dim, n_experts*expert_dim), nn.Tanh())
+        self.decoder = nn.Linear(expert_dim, vocab_size)
+        self.prior = nn.Linear(hidden_dim, n_experts, bias=False)
+        self.hidden_dim = hidden_dim
+        self.expert_dim = expert_dim
+        self.n_experts = n_experts
+        self.ntoken = vocab_size
+
+    def forward(self, x,y):
+        """
+        :param x: final hidden state x.size() = [batch_size*seq_len,hidden_dim]
+        :param y: target y.size() = [batch_size*seq_len]
+        :return:
+        """
+        latent = self.latent(x) # [batch_size*seq_len, n_experts*expert_dim]
+        logit = self.decoder(latent.view(-1, self.expert_dim)) # [batch_size*seq_len*n_experts, vocab_size]
+
+        prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)
+        prior = nn.functional.softmax(prior_logit, -1)
+
+        prob = nn.functional.softmax(logit.view(-1, self.ntoken), -1).view(-1, self.n_experts, self.ntoken)
+        prob = (prob * prior.unsqueeze(2).expand_as(prob)).sum(1)
+        
+        nll = - prob.gather(1, y.unsqueeze(1)).log()
+        padding_mask = y == self.padding_index
+        padding_indices = padding_mask.nonzero().squeeze(1)
+        padding_size = padding_indices.size(0)
+        nll[padding_indices] = 0
+        return nll
+
+    def pos_sampling(self, x, pos_top_w=None):
+        prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)
+        filtered_prior_logits = F.softmax(top_k_top_p_filtering(prior_logit, pos_top_w), dim=-1)
+        prior_prev = filtered_prior_logits.multinomial(num_samples=1).contiguous().squeeze(-1)
+
+        latent = self.latent(x)
+        logit = self.decoder(latent.view(-1, self.expert_dim)).contiguous().view(-1, self.n_experts, self.ntoken)
+
+        filtered_logit = logit[:, prior_prev, :]
+        return torch.log(filtered_logit)
+
 class LinearTransform(nn.Module):
     def __init__(self,hidden_states:int,activation_fn):
         super(LinearTransform, self).__init__()

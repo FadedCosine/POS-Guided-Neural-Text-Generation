@@ -131,10 +131,8 @@ def LM_sampling(model, lengths, inp, top_w, temparature, experimental_loss, samp
         mem=[m.to(torch.float) for m in mem]
     for _ in range(lengths):
         cnt+=1
-   
         with torch.no_grad():
             if is_rnn_model:
-                
                 if experimental_loss == 1 or experimental_loss == 2 :
                     logits, hidden = model.sampling(inp, hidden, sampling_mode, top_w)
                 elif experimental_loss == 3:

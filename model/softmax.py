@@ -118,6 +118,7 @@ class Factorized_Softmax(nn.Module):
 
     def soft_cluster_logit(self,x):
         logits = torch.zeros(x.size(0), self.vocab_size).to(x.device)
+        
         cl = self.cluster_logit(x)
         cluster_prob = torch.softmax(cl,dim=1) # [ batch, n_cluster]
         for i in range(self.n_clusters):
@@ -325,13 +326,17 @@ class POS_Guided_Softmax(nn.Module):
             idx+=1
         return torch.log(logits)
 
-    def pos_sampling(self, x, pos_top_w=None):
+    def pos_sampling(self, x, pos_top_w=None, control_pos_id=-1, control_factor=1.0):
         """
         pos sampling，先采样出pos，再在此pos的token_list
         """
         #! pos-train训出来的模型预测pos 会把EOS的概率预测得很高，导致BOS之后直接生成EOS。
         logits = torch.zeros(x.size(0),self.vocab_size).to(x.device)
         pos_logits = self.cluster_logit(x)
+        if control_factor != 1.0:
+            pos_probs = F.softmax(pos_logits, dim=-1)
+            pos_probs[..., control_pos_id] = pos_probs[..., control_pos_id] * control_factor
+            pos_logits = torch.log(pos_probs)
         # top_k_top_p_filtering必须输入不经过softmax的logits
         filtered_pos_logits = F.softmax(top_k_top_p_filtering(pos_logits, pos_top_w), dim=-1)
         pos_prev = filtered_pos_logits.multinomial(num_samples=1).contiguous().squeeze(-1)
@@ -402,6 +407,7 @@ class POS_Guided_Softmax(nn.Module):
             # 注意，此时tail_logprob_i中[i][j]表示的是y中的[i]个pos为当前pos的位置上的token，在当前pos的token list中选取词的各个token的概率
            
             nll[indices] = - cluster_ll[indices, i] - tail_logprob_i.gather(1,target_i[:,None]).squeeze(1)
+        
         return nll
 
 
@@ -425,29 +431,50 @@ class MixofSoftmax(nn.Module):
         """
         latent = self.latent(x) # [batch_size*seq_len, n_experts*expert_dim]
         logit = self.decoder(latent.view(-1, self.expert_dim)) # [batch_size*seq_len*n_experts, vocab_size]
-
-        prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)
+        
+        prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)#[batch_size * seq_len, n_experts]
         prior = nn.functional.softmax(prior_logit, -1)
 
-        prob = nn.functional.softmax(logit.view(-1, self.ntoken), -1).view(-1, self.n_experts, self.ntoken)
-        prob = (prob * prior.unsqueeze(2).expand_as(prob)).sum(1)
+        prob = nn.functional.softmax(logit.view(-1, self.ntoken), -1).view(-1, self.n_experts, self.ntoken) #[batch_size*seq_len, n_experts, vocab_size]
         
+       
+        prob = (prob * prior.unsqueeze(2).expand_as(prob)).sum(1)
+        # print("sum(-1) of prob is : ", prob.sum(-1))
         nll = - prob.gather(1, y.unsqueeze(1)).log()
+        # print("mos self.padding_index is : ", self.padding_index)
         padding_mask = y == self.padding_index
         padding_indices = padding_mask.nonzero().squeeze(1)
         padding_size = padding_indices.size(0)
         nll[padding_indices] = 0
-        return nll
+        if torch.isnan(torch.mean(nll)) or torch.gt(torch.mean(nll), 20.):
+            logger.info("last hidden state is : {}".format(x))
+            logger.info("y is : {}".format(y))
+            logger.info("sum(-1) of prob is : {}".format(prob.sum(-1)))
+            logger.info("prob is : {}".format(prob))
+            logger.info("prior is : {}".format(prior))
+        return nll.squeeze(1)
+    def soft_cluster_logit(self, x):
+        latent = self.latent(x)
+        logit = self.decoder(latent.view(-1, self.expert_dim)) # [batch_size*seq_len*n_experts, vocab_size]
+        
+        prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)
+        prior = nn.functional.softmax(prior_logit, -1)
+        
+        prob = nn.functional.softmax(logit.view(-1, self.ntoken), -1).view(-1, self.n_experts, self.ntoken) #[batch_size*seq_len, n_experts, vocab_size]
+       
+        prob = (prob * prior.unsqueeze(2).expand_as(prob)).sum(1)
+        return torch.log(prob)
 
     def pos_sampling(self, x, pos_top_w=None):
         prior_logit = self.prior(x).contiguous().view(-1, self.n_experts)
         filtered_prior_logits = F.softmax(top_k_top_p_filtering(prior_logit, pos_top_w), dim=-1)
         prior_prev = filtered_prior_logits.multinomial(num_samples=1).contiguous().squeeze(-1)
-
         latent = self.latent(x)
-        logit = self.decoder(latent.view(-1, self.expert_dim)).contiguous().view(-1, self.n_experts, self.ntoken)
+        logit = self.decoder(latent.view(-1, self.expert_dim)).contiguous()
+        prob = nn.functional.softmax(logit.view(-1, self.ntoken), -1).view(-1, self.n_experts, self.ntoken)
 
-        filtered_logit = logit[:, prior_prev, :]
+        prior_prev = prior_prev.unsqueeze(1).unsqueeze(2).expand(prob.size(0), 1, prob.size(-1))
+        filtered_logit = prob.gather(1, prior_prev).squeeze(1)
         return torch.log(filtered_logit)
 
 class LinearTransform(nn.Module):

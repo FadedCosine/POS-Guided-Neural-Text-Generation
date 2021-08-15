@@ -12,6 +12,7 @@ from util.sampling import *
 from util.beam_search import *
 import pandas as pd
 import pickle
+import time
 import logging
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S')
@@ -128,45 +129,52 @@ def generate_seq2seq_sample(args, model, batchfier, max_decoding_len=64):
         else:
             pos_top_w = args.pos_top_k
         if args.beam_size > 0:
-            beam_Sequence = seq2seq_beam_search(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature, args.experimental_loss, args.beam_size, args.sampling_mode, pos_top_w)
-            res = [sentence.output for sentence in beam_Sequence]
-            # for beam in beam_Sequence:
+            beam_sequences = seq2seq_beam_search(model, args.batch_seqlen, args.token_tokenizer, inp, top_w, args.temperature, args.experimental_loss, args.beam_size, args.sampling_mode, pos_top_w)
+            res = [sentence.output for sentence in beam_sequences]
+            
+            # res = []
+            # for beam in beam_sequences:
             #     res.append([sentence.output for sentence in beam])
 
         else:
             # try:
             res = seq2seq_sampling(model, max_decoding_len, args.token_tokenizer, inp, top_w, args.temperature,
-                        args.experimental_loss, args.sampling_mode, pos_top_w, args.generate_num)
+                        args.experimental_loss, sampling_mode=args.sampling_mode, pos_top_w=pos_top_w, sampling_num=args.generate_num, control_pos_id=args.pos_tokenizer.convert_tag_to_id(args.control_pos), control_factor=args.control_factor)
             # except RuntimeError:
             #     logger.info("RuntimeError, continue!")
             #     torch.cuda.empty_cache()
             #     continue
-        
+        # print(res)
         generated.extend(res)
         truths.extend(gt.tolist())
         prefixs.extend(input_x.tolist())
         idx += 1
         o = {}
         o['prefix'] = [args.token_tokenizer.convert_ids_to_words(item) for item in input_x.tolist()]
-        o['decoded_predict'] = [[args.token_tokenizer.convert_ids_to_words(item) for item in batch_item]for batch_item in res]
+        if args.beam_size > 0:
+            o['decoded_predict'] = [args.token_tokenizer.convert_ids_to_words(batch_item) for batch_item in res]
+        else:
+            o['decoded_predict'] = [[args.token_tokenizer.convert_ids_to_words(item) for item in batch_item] for batch_item in res]
         o['decoded_true'] = [args.token_tokenizer.convert_ids_to_words(item) for item in gt.tolist()]
         print(json.dumps(o), file=cache_file, flush=True)
-        for prefix, preds, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
-            logger.info("Source : " + " ".join(prefix[1:-1]))
-            logger.info("Target : " + " ".join(gt[1:-1]))
-            logger.info("Generated : ")
-            for pred in preds:
-                logger.info(" ".join(pred))
-            
-            logger.info("\n")
+        # for prefix, preds, gt in zip(o['prefix'], o['decoded_predict'], o['decoded_true']):
+            # logger.info("Source : " + " ".join(prefix[1:-1]))
+            # logger.info("Target : " + " ".join(gt[1:-1]))
+            # logger.info("Generated : ")
+            # if args.beam_size > 0:
+            #     logger.info(preds)
+            # else:
+            #     for pred in preds:
+            #         logger.info(" ".join(pred))
+            # logger.info("\n")
         if idx % 1 == 0:
-            logger.info("res is {}".format(res))
             logger.info("Finish generating {}/{} batch.".format(idx, tot_len))
         torch.cuda.empty_cache()
     return pd.DataFrame({'prefix':prefixs, 'decoded_predict':generated,'decoded_true':truths})
 
 if __name__ == '__main__':
     args = Argument(is_train=False)
+    start_time = time.time()
     logger.info('learning_rate {}, experimental : {} cutoffs len : {}'.format(args.learning_rate, 
         args.experimental_loss, len(args.cutoffs)))
     logger.info("cutoffs is {}".format(args.cutoffs))
@@ -178,10 +186,12 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.dirname(args.sampled_savepath)):
         os.makedirs(os.path.dirname(args.sampled_savepath))
     logger.info("Start to generate sentence")
+    logger.info("POS <JJ> id is : {}".format(args.pos_tokenizer.convert_tag_to_id("JJ")))
     if args.dataset == "wikitext-103":
         df = generate_LM_sample(args, model, test_batchfier)
     elif args.dataset == "paraNMT":
         df = generate_seq2seq_sample(args, model, test_batchfier)
-
+    end_time = time.time()
+    logger.info("generate {} cost time : {}".format(args.sampled_savepath, end_time-start_time))
     
     df.to_pickle(args.sampled_savepath)

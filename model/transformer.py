@@ -332,7 +332,7 @@ class Transformer(nn.Module):
      
         return final, enc_mem
        
-    def decode_step(self, enc_input_len, dec_input, dec_input_len, context, sampling_mode, top_w):
+    def decode_step(self, enc_input_len, dec_input, dec_input_len, context, sampling_mode, top_w, control_pos_id=4, control_factor=1):
         """ 在decoding阶段，外部已经通过compute_enc_context计算出encoder的context，每次输入当前时刻已经生成的所有y，预测下一个时刻的y_next，
            注意batch当中有可能有已经生成完的
 
@@ -350,6 +350,7 @@ class Transformer(nn.Module):
                 top k 's k value, if type is int,
                 top p 's p value, if type is float,
                 sampling_mode in [1, 2, 3], will ensure the output Logits keep enough tokens' logits for top k or top p sampling.
+            control_pos_id: to show that POS Sampling do improve controllability, we manually adjust probability of the control_pos_id, by multiplying a control_factor
 
         Returns:
             out: Finial token logits, before softmax.
@@ -382,7 +383,7 @@ class Transformer(nn.Module):
             ishard = False 
             out = self.final.hard_cluster_logit(out, top_w, ishard)
         elif sampling_mode == 3:
-            out = self.final.pos_sampling(out, top_w)
+            out = self.final.pos_sampling(out, top_w, control_pos_id=control_pos_id, control_factor=control_factor)
         else:
             out = self.final.soft_cluster_logit(out)
         return out

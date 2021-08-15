@@ -43,20 +43,20 @@ Next, download the [Stanford CoreNLP](http://nlp.stanford.edu/software/stanford-
 ```java
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9876 -timeout 15000
 ```
-For paraphrase generation, we first filter the dataset with a script(`script/filter_paraNMT_data.sh`). You need to specify the path where you install the Stanford CoreNLP in this script.
+For paraphrase generation, we first filter the [ParaNMT-50M](https://drive.google.com/file/d/1rbF3daJjCsa1-fu2GANeJd2FBXos1ugD/view) dataset with a script(`scripts/filter_paraNMT_data.sh`). You need to specify the path where you install the Stanford CoreNLP in this script.
 ```bash
-sh script/filter_paraNMT_data.sh
+sh scripts/filter_paraNMT_data.sh
 ```
 
 Then, we use StanfordCoreNLP to annotate the text with POS taggers.
 ```bash
-sh script/pos_tagging.sh
+sh scripts/pos_tagging.sh
 ```
 
-After all above finished, A script(`script/prepare_dataset.sh`) is used to preprocess data, including coverting tokens to ids, count the token frequency for F2-Softmax, etc.
+After all above finished, A script(`scripts/prepare_dataset.sh`) is used to preprocess data, including coverting tokens to ids, count the token frequency for F2-Softmax, etc.
 
 ```bash
-sh script/prepare_dataset.sh
+sh scripts/prepare_dataset.sh
 ```
 
 
@@ -68,11 +68,11 @@ Each Loss function is implemented in a single script:
 
 | Loss type                                                 | Script      | Description                                                  |
 | ------------------------------------------------------------ | ----------- | ------------------------------------------------------------ |
-| MLE                                                         | script/train_mle.sh       | Basic |
-| [FACE](<https://arxiv.org/pdf/1902.09191.pdf>) | script/train_face.sh       | finetune:: need inital checkpoints from mle loss                                                              |
-| [UL](<https://arxiv.org/pdf/1908.04319.pdf>)| script/train_ul.sh     | |
-| [F2-Softmax](<https://www.aclweb.org/anthology/2020.emnlp-main.737/>)  | script/train_f2_softmax.sh |  |
-| \*POS guided Softmax (ours) | script/train_pos_softmax.sh |  |
+| MLE                                                         | scripts/train_mle.sh       | Basic |
+| [FACE](<https://arxiv.org/pdf/1902.09191.pdf>) | scripts/train_face.sh       | finetune:: need inital checkpoints from mle loss                                                              |
+| [UL](<https://arxiv.org/pdf/1908.04319.pdf>)| scripts/train_ul.sh     | |
+| [F2-Softmax](<https://www.aclweb.org/anthology/2020.emnlp-main.737/>)  | scripts/train_f2_softmax.sh |  |
+| \*POS guided Softmax (ours) | scripts/train_pos_softmax.sh |  |
 
 
 
@@ -80,7 +80,7 @@ Each Loss function is implemented in a single script:
 
 ## Evaluation
 ### Calculate Perplexity
-A script (`script/evalutate_ppl.sh`) is for calculating perplexity.
+A script (`scripts/evalutate_ppl.sh`) is for calculating perplexity.
 Please specify `Data`, `saved-path` and `Mode`(loss)\
 
 ```bash
@@ -100,7 +100,7 @@ CUDA_VISIBLE_DEVICES=0 python lm_ppl_eval.py \
 ```
 
 ### Sampling
-A script (`script/sample.sh`) performs sampling for baselines.
+A script (`scripts/sample.sh`) performs sampling for baselines.
 Please specify `Data` and `Mode`(loss)
 Please set P (nucleus sampling for token sampling) in loop.
 
@@ -125,7 +125,7 @@ do
 done
 ```
 
-A script (`script/pos_sample.sh`) performs sampling for our POS guided Sampling. You can specify `pos-top-p` and `pos-top-k` to compare different sampling strategis in POS sampling. Note that only one of `pos-top-p` or `pos-top-k` should be specified.
+A script (`scripts/pos_sample.sh`) performs sampling for our POS guided Sampling. You can specify `pos-top-p` and `pos-top-k` to compare different sampling strategis in POS sampling. Note that only one of `pos-top-p` or `pos-top-k` should be specified.
 
 ```bash
 #!/bin/bash
@@ -154,7 +154,7 @@ done
 ```
 ### Evaluation
 
-Script (`script/evaluate_lm.sh`) and (`script/evaluate_para.sh`) are used to evaulate the automatic metrics for language modeling task and paraphrase generation, respectively.
+Script (`scripts/evaluate_lm.sh`) and (`scripts/evaluate_para.sh`) are used to evaulate the automatic metrics for language modeling task and paraphrase generation, respectively.
 
 Please specify dataset at ```$Data``` and sampling hyper-parameters: ```top-p``` and ```top-k```.
 

@@ -192,7 +192,7 @@ def prepare_dataset_with_core(args, data_path, tokenizer, pos_tokenizer, dataset
     # meaningful_vocab_size包括了原本的pos和eos
     pos2word = [set() for i in range(pos_tokenizer.meaningful_vocab_size)]
     # POS为 EOS的token list当中只有token为EOS这一个token
-    if dataset == "paraNMT":
+    if args.add_special_token:
         pos2word[pos_tokenizer.eos_id].add(tokenizer.eos_id)
     # tokenizer.vocab_size 包括了 unk 和 pad，如果filter_bad_items为True，则还包括了bos和eos
     token_in_pos_id = np.zeros((pos_tokenizer.meaningful_vocab_size, tokenizer.vocab_size), dtype=np.int32)
@@ -303,6 +303,7 @@ def get_parser():
     parser.add_argument("--lower", action="store_true", help="If lower the text")
     parser.add_argument("--vocab-size", type=int, default=270000)
     parser.add_argument("--dataset", type=str, default="wikitext-103")
+    parser.add_argument("--add_special_token", action='store_true', help="If add special token like <bos>, <eos> into vocab (usually need to be true on seq2seq task)")
     return parser.parse_args()
 
 
@@ -329,9 +330,9 @@ if __name__ == '__main__':
         build_vocab(args, data_path)
  
     logger.info("require vocab size is {}".format(args.vocab_size))
-    if args.dataset == "wikitext-103":
+    if not args.add_special_token:
         add_special_token= False
-    elif args.dataset == "paraNMT":
+    else:
         add_special_token = True
     token_tokenizer = tokenizer.TokenTokenizer(token_vocab_path, args.vocab_size, add_special_token=add_special_token)
     pos_tokenizer = tokenizer.POSTokenizer(pos_vocab_path,add_special_token=add_special_token)

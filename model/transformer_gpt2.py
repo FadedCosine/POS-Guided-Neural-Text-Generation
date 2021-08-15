@@ -296,7 +296,7 @@ class Transformer_Decoder(Transformer_Base):
                  n_heads: int, head_dim: int, n_layers:int, cutoffs:list,
                  dropout_rate: float, dropatt_rate: float, padding_index : int,
                  pre_lnorm: bool = False, same_lengths:bool = False, rel_att=True, experimental_loss=0,
-                 pos2word=None, token_in_pos_id=None, expert_dim=512, n_experts=15,):
+                 pos2word=None, token_in_pos_id=None, expert_dim=300, n_experts=7,):
         super(Transformer_Decoder, self).__init__(vocab_size,seq_len,hidden_dim,projection_dim,n_heads,head_dim,
                                                 n_layers,dropout_rate,dropatt_rate,padding_index,pre_lnorm,
                                                 same_lengths,rel_att,Transformer_Block)

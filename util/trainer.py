@@ -511,7 +511,6 @@ class Evaluater:
                         logits, _ = model(x, x_l, y, y_l, y_pos)
                 logits = logits.contiguous().view(bs * (qs - 1), -1)
                 y = tgt.contiguous().view(-1)
-                # print("y size is ", y.size())
                 losses = self.criterion(logits, y)
                 n_samples+= (tgt != self.padding_idx).sum().item()
                 t_correct += self.acc(logits, y)
@@ -519,7 +518,7 @@ class Evaluater:
                 mac_ppl = self.macro_ppl(logits, y)
                 mac_acc = self.macro_acc(logits, y)
                 pbar.set_description(
-                    "test loss : %f training ppl : %f acc : %f mac ppl : %f mac acc : %f" % (
+                    "test loss : %f test ppl : %f acc : %f mac ppl : %f mac acc : %f" % (
                         step_loss / n_samples, math.exp(step_loss / n_samples),
                         t_correct / n_samples, mac_ppl, mac_acc))
                 

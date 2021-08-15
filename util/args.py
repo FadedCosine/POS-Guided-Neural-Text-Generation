@@ -66,6 +66,10 @@ class Argument:
         parser.add_argument("--top-p", type=float, default=0.0)
         parser.add_argument("--pos-top-k", type=int, default=0)
         parser.add_argument("--pos-top-p", type=float, default=0.0)
+        parser.add_argument("--analyse-ctrl", action="store_true", help="If is analysing controllability")
+        parser.add_argument("--control-pos", type=str, default='JJ')
+        parser.add_argument("--control-factor", type=float, default=1.0)
+        parser.add_argument("--sample-dirname", type=str, default='SGCP_samples')
         parser.add_argument("--generate-num", type=int, default=1)
         parser.add_argument("--temperature", type=float, default=1)
 
@@ -134,13 +138,22 @@ class Argument:
             savename += '_uniform'
         data['savename'] = os.path.join('data/checkpoint','{}'.format(data['dataset']), savename)
         # if not self.is_train:
-        sample_dirname = os.path.join('prefix-{}_nsample-{}'.format(data['nprefix'],data['ngenerate']),
-                                        'topp-{}-topk-{}-temp-{}'.format(data['top_p'], data['top_k'], data['temperature']))
+        # sample_dirname = os.path.join('prefix-{}_nsample-{}'.format(data['nprefix'],data['ngenerate']),
+                                        # 'topp-{}-topk-{}-temp-{}'.format(data['top_p'], data['top_k'], data['temperature']))
+        sample_dirname = data['sample_dirname']                        
         sample_basename = '{}'.format(data['loss_type'])
-        if data['experimental_loss'] == 1 or data['experimental_loss'] == 2:
-            sample_basename += '_mode-{}'.format(data['sampling_mode'])
-        elif data['experimental_loss'] == 3:
-            sample_basename += '_mode-{}-pos-topp-{}-topk-{}'.format(data['sampling_mode'], data['pos_top_p'], data['pos_top_k'])
         if data['beam_size'] > 0:
-            sample_basename += "-beam{}".format(data['beam_size'])
-        data['sampled_savepath'] = os.path.join('data','sampled','{}'.format(data['dataset']), sample_dirname,sample_basename)
+            sample_basename += "_mode-{}-beam{}".format(data['sampling_mode'], data['beam_size'])
+        else:
+            sample_basename += '_mode-{}-topp-{}-topk-{}'.format(data['sampling_mode'], data['top_p'], data['top_k'])
+        if data['analyse_ctrl']:
+            sample_basename += '_ctrl-{}x{}'.format(data['control_pos'], data['control_factor'])
+        # if data['experimental_loss'] == 1 or data['experimental_loss'] == 2:
+        #     sample_basename += '_mode-{}'.format(data['sampling_mode'])
+        # elif data['experimental_loss'] == 3:
+        #     sample_basename += '_mode-{}-pos-topp-{}-topk-{}'.format(data['sampling_mode'], data['pos_top_p'], data['pos_top_k'])
+           
+            
+        
+            
+        data['sampled_savepath'] = os.path.join('data','sampled','{}'.format(data['dataset']), sample_dirname, sample_basename)

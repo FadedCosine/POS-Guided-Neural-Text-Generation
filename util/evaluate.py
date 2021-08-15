@@ -8,6 +8,11 @@ from fractions import Fraction
 from .wer import *
 import numpy as np
 from rouge import Rouge
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+                    datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def words_dist(cum_probs, texts):
@@ -484,3 +489,19 @@ def closest_ref_length(ref_lens, hyp_len):
         ref_lens, key=lambda ref_len: (abs(ref_len - hyp_len), ref_len)
     )
     return closest_ref_len
+
+def count_avg_pos(sentences, pos="JJ"):
+    from nltk.parse import CoreNLPParser
+    try:
+        pos_tagger = CoreNLPParser(url="http://localhost:9876", tagtype='pos')
+    except:
+        logging.info("load pos_tagger on http://localhost:9876 failed!")
+        return -1
+    target_pos_num = 0
+    for sentence in sentences:
+        pos_result = pos_tagger.tag(sentence)
+        for word_pos in pos_result:
+            if word_pos[1] == pos:
+                target_pos_num += 1
+    return target_pos_num / len(sentences)
+

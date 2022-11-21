@@ -1,7 +1,7 @@
 
 
 
-# Neural Text Generation with Part-of-Speech Guided Softmax
+# Diversifying Neural Text Generation with Part-of-Speech Guided Softmax and Sampling
 
 
 pytorch implementation
@@ -181,3 +181,23 @@ Besides, we also calculate the [BERTScore](https://github.com/Tiiiger/bert_score
 ## Credits
 
 The code in this repository and portions of this README are based on [F2-Softmax](<https://www.aclweb.org/anthology/2020.emnlp-main.737/>) 
+
+## **Citation**
+If you find our paper useful to your work, please kindly cite our paper:
+
+```
+@inproceedings{yang-etal-2022-diversifying,
+    title = "Diversifying Neural Text Generation with Part-of-Speech Guided Softmax and Sampling",
+    author = "Yang, Zhixian  and
+      Xu, Pengxuan  and
+      Wan, Xiaojun",
+    booktitle = "Proceedings of the 29th International Conference on Computational Linguistics",
+    month = oct,
+    year = "2022",
+    address = "Gyeongju, Republic of Korea",
+    publisher = "International Committee on Computational Linguistics",
+    url = "https://aclanthology.org/2022.coling-1.570",
+    pages = "6547--6563",
+    abstract = "Neural text generation models are likely to suffer from the low-diversity problem. Various decoding strategies and training-based methods have been proposed to promote diversity only by exploiting contextual features, but rarely do they consider incorporating syntactic structure clues. In this work, we propose using linguistic annotation, i.e., part-of-speech (POS), to guide the text generation. In detail, we introduce POS Guided Softmax to explicitly model two posterior probabilities: (i) next-POS, and (ii) next-token from the vocabulary of the target POS. A POS Guided Sampling strategy is further proposed to address the low-diversity problem by enriching the diversity of POS. Extensive experiments and human evaluations show that, compared with existing state-of-the-art methods, our POS Guided Softmax and Sampling (POSG) can generate more diverse text while maintaining comparable quality.",
+}
+```
